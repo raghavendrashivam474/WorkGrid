@@ -6,10 +6,10 @@
 
 ## 📌 Current Status
 
-  * **Phase:** 0 — Foundation
-  * **Sprint:** S0.2 & S0.3 — Architecture & Domain Foundation (Complete)
-  * **Target Release:** v0.0
-  * **Status:** Completed — Stable Foundation Established
+  * **Phase:** 1 — Local Mobile Core
+  * **Sprint:** S1.1 → S1.4 (Complete)
+  * **Current Release:** v1.0
+  * **Status:** Completed — Functional Local-First Android Core Established
 
 ---
 
@@ -65,8 +65,8 @@ WorkGrid/
 
 | Phase | Milestone | Focus | Status |
 | --- | --- | --- | --- |
-| **Phase 0** | v0.0 | Foundation (Repository, Architecture & Domain scaffolding) | Active |
-| **Phase 1** | v1.0 | Local Mobile Core (SQLite, Local CRUD, Base UI) | Planned |
+| **Phase 0** | v0.0 | Foundation (Repository, Architecture & Domain scaffolding) | Completed |
+| **Phase 1** | v1.0 | Local Mobile Core (SQLite, Local CRUD, Base UI) | Completed |
 | **Phase 2** | v2.0 | Business Workflows (Assignments, Asset Tracking) | Planned |
 | **Phase 3** | v3.0 | Identity & Quality (Validation, Security, Hardening) | Planned |
 | **Phase 4** | v4.0 | Hybrid Backend (ASP.NET Core REST API, Server DB) | Planned |
@@ -90,3 +90,4 @@ dotnet build
 # Run all test projects
 dotnet test
 ```
+
