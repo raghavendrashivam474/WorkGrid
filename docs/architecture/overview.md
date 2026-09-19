@@ -11,18 +11,18 @@ WorkGrid is designed as a hybrid, local-first platform for managing employees, e
 
 ---
 
-## 2. Current State (S0.1) vs Planned Evolution
+## 2. Current State (S0.2 / S0.3) vs Planned Evolution
 
-### CURRENT (Phase 0 / S0.1)
-* **Solution Structure:** Standardized .NET 8 solution containing 4 primary projects (`WorkGrid.App`, `WorkGrid.Domain`, `WorkGrid.Infrastructure`, `WorkGrid.Api`) and 3 test projects.
-* **Dependency Direction:** Established and enforced via project references.
-* **WorkGrid.App:** Baseline .NET MAUI application targeting Android.
-* **WorkGrid.Domain:** Independent class library (no external technical dependencies).
-* **WorkGrid.Infrastructure:** Prepared for future EF Core and SQLite integration.
+### CURRENT (Phase 0 / S0.2–S0.3)
+* **Solution Structure:** Standardized .NET 8 solution containing 4 primary projects (WorkGrid.App, WorkGrid.Domain, WorkGrid.Infrastructure, WorkGrid.Api) and 3 test projects.
+* **Dependency Direction:** Established, reviewed, and enforced via project references (see Dependency Policy Matrix below).
+* **WorkGrid.App:** MVVM-structured .NET MAUI application targeting Android with ViewModelBase, MainViewModel, Views/, ViewModels/, Services/ organization, and constructor-based DI via MauiProgram.cs.
+* **WorkGrid.Domain:** Pure C# domain model containing Employee, Asset, and Assignment entities with business invariants, AssetStatus/AssignmentStatus enums, and DomainValidationException. Covered by 23 unit tests. Zero framework coupling.
+* **WorkGrid.Infrastructure:** Organized with Persistence/, Repositories/, Services/, DependencyInjection/ directories. No persistence implementation yet — reserved for Phase 1.
 * **WorkGrid.Api:** Clean ASP.NET Core minimal baseline, structurally reserved for Phase 4.
 
 ### PLANNED (Future Phases)
-* **Phase 1 (v1.0):** Domain entity definitions (Employee, Asset, Assignment), SQLite persistence via EF Core, and core mobile MVVM screens.
+* **Phase 1 (v1.0):** SQLite persistence via EF Core, local CRUD repositories, and core mobile MVVM screens for Employee/Asset/Assignment workflows.
 * **Phase 2 (v2.0):** Asset checkout/checkin workflows, maintenance tracking, assignment history.
 * **Phase 3 (v3.0):** Input validation, identity, logging, unit & integration test coverage expansion.
 * **Phase 4 (v4.0):** ASP.NET Core backend endpoints, server database integration (PostgreSQL / SQL Server).
@@ -89,3 +89,5 @@ And for the future backend:
 - REST / HTTP API endpoints
 - Authentication & authorization
 - Server-side orchestration and synchronization endpoints
+
+
