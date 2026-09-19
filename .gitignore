@@ -1,0 +1,55 @@
+﻿## Build and output
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+dist/
+build/
+out/
+TestResults/
+*.sublime-project
+*.sublime-workspace
+
+## .NET Core / Visual Studio
+.vs/
+.vscode/
+.idea/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.userprefs
+*.dbmdl
+*.jfm
+*.pidb
+*.booproj
+*.svclog
+*.crash
+
+## Android & MAUI specifics
+.gradle/
+captures/
+*.apk
+*.aab
+*.dex
+*.keystore
+local.properties
+platforms/android/bin/
+platforms/android/obj/
+
+## OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+## Secrets & local environment
+*.env
+*.env.local
+appsettings.Development.json
+appsettings.Local.json
+secrets.json
