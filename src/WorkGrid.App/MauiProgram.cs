@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using WorkGrid.App.ViewModels;
 using WorkGrid.App.ViewModels.Home;
 using WorkGrid.App.ViewModels.Employees;
@@ -7,6 +8,8 @@ using WorkGrid.App.Views;
 using WorkGrid.App.Views.Home;
 using WorkGrid.App.Views.Employees;
 using WorkGrid.App.Views.Assets;
+using WorkGrid.Infrastructure.DependencyInjection;
+using WorkGrid.Infrastructure.Persistence;
 
 namespace WorkGrid.App;
 
@@ -27,7 +30,11 @@ public static class MauiProgram
         builder.Logging.AddDebug();
 #endif
 
-        // Root Architecture
+        // Infrastructure Persistence (Local SQLite)
+        var dbPath = Path.Combine(FileSystem.AppDataDirectory, "workgrid.db3");
+        builder.Services.AddInfrastructure(dbPath);
+
+        // Root Navigation
         builder.Services.AddSingleton<AppShell>();
 
         // ViewModels
@@ -46,6 +53,15 @@ public static class MauiProgram
         builder.Services.AddTransient<AssetListPage>();
         builder.Services.AddTransient<AssetDetailPage>();
 
-        return builder.Build();
+        var app = builder.Build();
+
+        // Ensure database is initialized at startup
+        using (var scope = app.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<WorkGridDbContext>();
+            dbContext.Database.EnsureCreated();
+        }
+
+        return app;
     }
 }
