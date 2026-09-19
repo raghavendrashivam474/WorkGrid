@@ -43,6 +43,18 @@ public sealed class Asset
         Status = status;
     }
 
+    public void UpdateDetails(string name, string? assetType = null, string? serialNumber = null)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new DomainValidationException("Asset name cannot be null or whitespace.");
+        }
+
+        Name = name.Trim();
+        AssetType = assetType?.Trim();
+        SerialNumber = serialNumber?.Trim();
+    }
+
     public void MarkAssigned()
     {
         if (Status == AssetStatus.Retired)
