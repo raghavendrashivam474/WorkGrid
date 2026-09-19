@@ -6,13 +6,74 @@
              x:DataType="vm:EmployeeDetailViewModel"
              Title="{Binding Title}">
 
-    <VerticalStackLayout Padding="20" Spacing="15">
-        <Label Text="{Binding Title}" Style="{StaticResource Headline}" />
-        <Label Text="This page is ready for employee forms." TextColor="Gray" />
-        
-        <HorizontalStackLayout Spacing="10" HorizontalOptions="Center" Margin="0,20,0,0">
-            <Button Text="Save" Command="{Binding SaveCommand}" WidthRequest="100" />
-            <Button Text="Cancel" Command="{Binding CancelCommand}" WidthRequest="100" Style="{StaticResource SecondaryButtonStyle}" />
-        </HorizontalStackLayout>
-    </VerticalStackLayout>
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+            <!-- Error Banner -->
+            <Frame BackgroundColor="#FFEBEE"
+                   BorderColor="#D32F2F"
+                   Padding="10"
+                   CornerRadius="6"
+                   IsVisible="{Binding ErrorMessage, Converter={StaticResource IsNotNullOrEmptyConverter}}">
+                <Label Text="{Binding ErrorMessage}"
+                       TextColor="#D32F2F"
+                       FontSize="13" />
+            </Frame>
+
+            <!-- Employee Code (Disabled if editing) -->
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Employee Code *" FontAttributes="Bold" FontSize="13" />
+                <Entry Text="{Binding EmployeeCode}"
+                       Placeholder="e.g. EMP001"
+                       IsEnabled="{Binding IsEditMode, Converter={StaticResource InverseBoolConverter}}" />
+            </VerticalStackLayout>
+
+            <!-- Name -->
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Full Name *" FontAttributes="Bold" FontSize="13" />
+                <Entry Text="{Binding Name}"
+                       Placeholder="e.g. Jane Doe" />
+            </VerticalStackLayout>
+
+            <!-- Email -->
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Email Address *" FontAttributes="Bold" FontSize="13" />
+                <Entry Text="{Binding Email}"
+                       Keyboard="Email"
+                       Placeholder="e.g. jane.doe@company.com" />
+            </VerticalStackLayout>
+
+            <!-- Department -->
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Department" FontAttributes="Bold" FontSize="13" />
+                <Entry Text="{Binding Department}"
+                       Placeholder="e.g. Engineering" />
+            </VerticalStackLayout>
+
+            <!-- Actions -->
+            <Grid ColumnDefinitions="*, *" ColumnSpacing="10" Margin="0,15,0,0">
+                <Button Grid.Column="0"
+                        Text="Save"
+                        Command="{Binding SaveCommand}"
+                        IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}" />
+                <Button Grid.Column="1"
+                        Text="Cancel"
+                        Command="{Binding CancelCommand}"
+                        Style="{StaticResource SecondaryButtonStyle}" />
+            </Grid>
+
+            <!-- Delete Button (Only visible in edit mode) -->
+            <Button Text="Delete Employee"
+                    Command="{Binding DeleteCommand}"
+                    BackgroundColor="#D32F2F"
+                    TextColor="White"
+                    Margin="0,10,0,0"
+                    IsVisible="{Binding CanDelete}"
+                    IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}" />
+
+            <!-- Activity Indicator -->
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}"
+                               HorizontalOptions="Center" />
+        </VerticalStackLayout>
+    </ScrollView>
 </ContentPage>
