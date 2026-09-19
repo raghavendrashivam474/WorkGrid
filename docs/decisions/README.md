@@ -15,35 +15,9 @@ Routine implementation details and minor refactorings do not require an ADR.
 
 ---
 
-## 📝 ADR Template Format
+## 📑 ADR Index
 
-Each ADR should follow this standard structure:
-
-```markdown
-# ADR-XXXX: [Title]
-
-* **Status:** [Proposed | Accepted | Superseded | Deprecated]
-* **Date:** YYYY-MM-DD
-* **Deciders:** [Names/Roles]
-
-## Context
-[What problem or situation prompted this decision?]
-
-## Decision
-[What architectural change or approach is being adopted?]
-
-## Reason & Motivation
-[Why was this option chosen over others?]
-
-## Alternatives Considered
-* **Alternative 1:** [Why it was rejected]
-* **Alternative 2:** [Why it was rejected]
-
-## Consequences
-* **Positive:** [What becomes easier or better]
-* **Negative / Trade-offs:** [What overhead or constraint is introduced]
-🗂️ Decision Log
-
-| ID | Date | Title | Status |
+| ADR | Title | Status | Date |
 | --- | --- | --- | --- |
-| **—** | — | No decisions recorded yet. Baseline architecture defined in S0.1. | — |
+| [ADR-0001](ADR-0001-local-persistence-efcore-sqlite.md) | Local Persistence with EF Core and SQLite | Accepted | Phase 1 |
+| [ADR-0002](ADR-0002-entity-deletion-guard-rules.md) | Active Assignment Guard Rules for Entity Deletion | Accepted | Phase 1 |
