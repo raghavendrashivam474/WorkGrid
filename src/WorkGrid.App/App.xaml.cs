@@ -1,13 +1,11 @@
-﻿using WorkGrid.App.Views;
-
-namespace WorkGrid.App;
+﻿namespace WorkGrid.App;
 
 public partial class App : Application
 {
-    public App(MainPage mainPage)
+    public App(AppShell appShell)
     {
         InitializeComponent();
 
-        MainPage = mainPage;
+        MainPage = appShell;
     }
 }

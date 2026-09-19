@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Shell xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+       xmlns:home="clr-namespace:WorkGrid.App.Views.Home"
+       xmlns:employees="clr-namespace:WorkGrid.App.Views.Employees"
+       xmlns:assets="clr-namespace:WorkGrid.App.Views.Assets"
+       x:Class="WorkGrid.App.AppShell"
+       Title="WorkGrid">
+
+    <FlyoutItem Title="Home">
+        <ShellContent ContentTemplate="{DataTemplate home:HomePage}"
+                      Route="home" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="Employees">
+        <ShellContent ContentTemplate="{DataTemplate employees:EmployeeListPage}"
+                      Route="employees" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="Assets">
+        <ShellContent ContentTemplate="{DataTemplate assets:AssetListPage}"
+                      Route="assets" />
+    </FlyoutItem>
+
+</Shell>
