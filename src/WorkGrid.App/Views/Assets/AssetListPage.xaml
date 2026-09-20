@@ -7,8 +7,24 @@
              x:DataType="vm:AssetListViewModel"
              Title="Assets">
 
-    <Grid RowDefinitions="*, Auto" Padding="15">
-        <RefreshView Grid.Row="0"
+    <Grid RowDefinitions="Auto, Auto, *, Auto" Padding="15" RowSpacing="8">
+        <!-- Search Bar -->
+        <SearchBar Grid.Row="0"
+                   Placeholder="Search tag, name, serial number, type..."
+                   Text="{Binding SearchText}"
+                   SearchCommand="{Binding LoadAssetsCommand}" />
+
+        <!-- Status Filter Chips Picker -->
+        <Grid Grid.Row="1" ColumnDefinitions="Auto, *" ColumnSpacing="10" VerticalOptions="Center">
+            <Label Grid.Column="0" Text="Filter:" VerticalOptions="Center" FontAttributes="Bold" />
+            <Picker Grid.Column="1"
+                    ItemsSource="{Binding FilterOptions}"
+                    SelectedItem="{Binding SelectedFilter}"
+                    Title="Filter by Status" />
+        </Grid>
+
+        <!-- Main List Area -->
+        <RefreshView Grid.Row="2"
                      IsRefreshing="{Binding IsLoading}"
                      Command="{Binding LoadAssetsCommand}">
             <Grid>
@@ -68,9 +84,9 @@
         </RefreshView>
 
         <!-- Bottom Action Button -->
-        <Button Grid.Row="1"
+        <Button Grid.Row="3"
                 Text="+ Add Asset"
                 Command="{Binding AddAssetCommand}"
-                Margin="0,10,0,0" />
+                Margin="0,5,0,0" />
     </Grid>
 </ContentPage>
