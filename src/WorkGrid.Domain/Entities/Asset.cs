@@ -21,19 +21,13 @@ public sealed class Asset
         AssetStatus status = AssetStatus.Available)
     {
         if (id == Guid.Empty)
-        {
             throw new DomainValidationException("Asset ID cannot be empty.");
-        }
 
         if (string.IsNullOrWhiteSpace(assetTag))
-        {
             throw new DomainValidationException("Asset tag cannot be null or whitespace.");
-        }
 
         if (string.IsNullOrWhiteSpace(name))
-        {
             throw new DomainValidationException("Asset name cannot be null or whitespace.");
-        }
 
         Id = id;
         AssetTag = assetTag.Trim().ToUpperInvariant();
@@ -46,9 +40,7 @@ public sealed class Asset
     public void UpdateDetails(string name, string? assetType = null, string? serialNumber = null)
     {
         if (string.IsNullOrWhiteSpace(name))
-        {
             throw new DomainValidationException("Asset name cannot be null or whitespace.");
-        }
 
         Name = name.Trim();
         AssetType = assetType?.Trim();
@@ -57,20 +49,18 @@ public sealed class Asset
 
     public void MarkAssigned()
     {
-        if (Status == AssetStatus.Retired)
-        {
-            throw new DomainValidationException("Cannot assign a retired asset.");
-        }
+        if (Status != AssetStatus.Available)
+            throw new DomainValidationException(
+                $"Cannot assign an asset with status '{Status}'. Only available assets can be assigned.");
 
         Status = AssetStatus.Assigned;
     }
 
     public void MarkAvailable()
     {
-        if (Status == AssetStatus.Retired)
-        {
-            throw new DomainValidationException("Cannot make a retired asset available.");
-        }
+        if (Status != AssetStatus.Assigned && Status != AssetStatus.Maintenance)
+            throw new DomainValidationException(
+                $"Cannot make an asset with status '{Status}' available. Only assigned or maintenance assets can become available.");
 
         Status = AssetStatus.Available;
     }
@@ -78,9 +68,7 @@ public sealed class Asset
     public void MarkMaintenance()
     {
         if (Status == AssetStatus.Retired)
-        {
             throw new DomainValidationException("Cannot place a retired asset into maintenance.");
-        }
 
         Status = AssetStatus.Maintenance;
     }
