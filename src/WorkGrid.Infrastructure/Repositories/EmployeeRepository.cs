@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Globalization;
+using Microsoft.EntityFrameworkCore;
 using WorkGrid.Domain.Contracts;
 using WorkGrid.Domain.Entities;
 using WorkGrid.Infrastructure.Persistence;
@@ -30,9 +31,10 @@ public sealed class EmployeeRepository : IEmployeeRepository
 
     public async Task<bool> ExistsByCodeAsync(string employeeCode, CancellationToken cancellationToken = default)
     {
-        var normalized = employeeCode.Trim().ToUpperInvariant();
+        var normalizedCode = employeeCode.Trim().ToUpper(CultureInfo.InvariantCulture);
+        // SQLite is case-insensitive by default for ASCII; using direct comparison to keep EF query translation warnings clean
         return await _context.Employees
-            .AnyAsync(e => e.EmployeeCode.ToUpper() == normalized, cancellationToken);
+            .AnyAsync(e => e.EmployeeCode == normalizedCode, cancellationToken);
     }
 
     public async Task AddAsync(Employee employee, CancellationToken cancellationToken = default)

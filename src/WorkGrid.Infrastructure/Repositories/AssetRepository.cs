@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Globalization;
+using Microsoft.EntityFrameworkCore;
 using WorkGrid.Domain.Contracts;
 using WorkGrid.Domain.Entities;
 using WorkGrid.Infrastructure.Persistence;
@@ -30,9 +31,9 @@ public sealed class AssetRepository : IAssetRepository
 
     public async Task<bool> ExistsByTagAsync(string assetTag, CancellationToken cancellationToken = default)
     {
-        var normalized = assetTag.Trim().ToUpperInvariant();
+        var normalizedTag = assetTag.Trim().ToUpper(CultureInfo.InvariantCulture);
         return await _context.Assets
-            .AnyAsync(a => a.AssetTag.ToUpper() == normalized, cancellationToken);
+            .AnyAsync(a => a.AssetTag == normalizedTag, cancellationToken);
     }
 
     public async Task AddAsync(Asset asset, CancellationToken cancellationToken = default)
