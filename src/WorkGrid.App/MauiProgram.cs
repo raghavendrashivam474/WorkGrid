@@ -65,12 +65,13 @@ public static class MauiProgram
         using (var scope = app.Services.CreateScope())
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<WorkGridDbContext>();
-            dbContext.Database.EnsureCreated();
+            dbContext.Database.Migrate();
         }
 
         return app;
     }
 }
+
 
 
 
