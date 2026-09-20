@@ -8,6 +8,7 @@ public sealed class WorkGridDbContext : DbContext
     public DbSet<Employee> Employees => Set<Employee>();
     public DbSet<Asset> Assets => Set<Asset>();
     public DbSet<Assignment> Assignments => Set<Assignment>();
+    public DbSet<User> Users => Set<User>();
 
     public WorkGridDbContext(DbContextOptions<WorkGridDbContext> options)
         : base(options)

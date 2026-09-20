@@ -16,10 +16,17 @@ public static class ServiceCollectionExtensions
             options.UseSqlite($"Data Source={databasePath}");
         });
 
+        // Repositories
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
         services.AddScoped<IAssetRepository, AssetRepository>();
         services.AddScoped<IAssignmentRepository, AssignmentRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
+
+        // Domain & Application Services
         services.AddScoped<IAssignmentService, AssignmentService>();
+        services.AddSingleton<IPasswordHasher, PasswordHasher>();
+        services.AddSingleton<ISessionService, SessionService>();
+        services.AddScoped<IAuthenticationService, AuthenticationService>();
 
         return services;
     }
