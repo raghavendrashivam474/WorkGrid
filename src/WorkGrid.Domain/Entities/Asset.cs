@@ -69,12 +69,18 @@ public sealed class Asset
     {
         if (Status == AssetStatus.Retired)
             throw new DomainValidationException("Cannot place a retired asset into maintenance.");
+            
+        if (Status == AssetStatus.Assigned)
+            throw new DomainValidationException("Cannot place an assigned asset into maintenance. Return the asset first.");
 
         Status = AssetStatus.Maintenance;
     }
 
     public void Retire()
     {
+        if (Status == AssetStatus.Assigned)
+            throw new DomainValidationException("Cannot retire an assigned asset. Return the asset first.");
+
         Status = AssetStatus.Retired;
     }
 }

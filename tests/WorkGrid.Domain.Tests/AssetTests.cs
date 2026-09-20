@@ -85,6 +85,22 @@ public class AssetTests
     }
 
     [Fact]
+    public void MarkMaintenance_OnAssignedAsset_ThrowsDomainValidationException()
+    {
+        var asset = new Asset(Guid.NewGuid(), "AST-001", "MacBook Pro", status: AssetStatus.Assigned);
+        var ex = Assert.Throws<DomainValidationException>(() => asset.MarkMaintenance());
+        Assert.Contains("assigned asset into maintenance", ex.Message);
+    }
+
+    [Fact]
+    public void Retire_OnAssignedAsset_ThrowsDomainValidationException()
+    {
+        var asset = new Asset(Guid.NewGuid(), "AST-001", "MacBook Pro", status: AssetStatus.Assigned);
+        var ex = Assert.Throws<DomainValidationException>(() => asset.Retire());
+        Assert.Contains("retire an assigned asset", ex.Message);
+    }
+
+    [Fact]
     public void UpdateDetails_WithValidData_UpdatesProperties()
     {
         var asset = new Asset(Guid.NewGuid(), "AST-001", "MacBook Pro");
