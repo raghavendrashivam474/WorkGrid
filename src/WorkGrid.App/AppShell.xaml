@@ -7,6 +7,7 @@
     xmlns:employees="clr-namespace:WorkGrid.App.Views.Employees"
     xmlns:assets="clr-namespace:WorkGrid.App.Views.Assets"
     xmlns:assignments="clr-namespace:WorkGrid.App.Views.Assignments"
+    xmlns:users="clr-namespace:WorkGrid.App.Views.Users"
     xmlns:auth="clr-namespace:WorkGrid.App.Views.Auth"
     Title="WorkGrid">
 
@@ -30,6 +31,10 @@
 
         <Tab Title="Assignments" Icon="assignment.png" Route="assignments">
             <ShellContent ContentTemplate="{DataTemplate assignments:AssignmentListPage}" />
+        </Tab>
+
+        <Tab Title="Users" Icon="employee.png" Route="users">
+            <ShellContent ContentTemplate="{DataTemplate users:UserListPage}" />
         </Tab>
     </TabBar>
 

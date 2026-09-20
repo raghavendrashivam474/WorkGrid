@@ -7,11 +7,13 @@ using WorkGrid.App.ViewModels.Home;
 using WorkGrid.App.ViewModels.Employees;
 using WorkGrid.App.ViewModels.Assets;
 using WorkGrid.App.ViewModels.Auth;
+using WorkGrid.App.ViewModels.Users;
 using WorkGrid.App.Views;
 using WorkGrid.App.Views.Home;
 using WorkGrid.App.Views.Employees;
 using WorkGrid.App.Views.Assets;
 using WorkGrid.App.Views.Auth;
+using WorkGrid.App.Views.Users;
 using WorkGrid.Infrastructure.DependencyInjection;
 using WorkGrid.Infrastructure.Persistence;
 
@@ -51,6 +53,7 @@ public static class MauiProgram
         builder.Services.AddTransient<AssetDetailViewModel>();
         builder.Services.AddTransient<AssignmentListViewModel>();
         builder.Services.AddTransient<AssignmentDetailViewModel>();
+        builder.Services.AddTransient<UserListViewModel>();
 
         // Views
         builder.Services.AddTransient<LoginPage>();
@@ -62,6 +65,7 @@ public static class MauiProgram
         builder.Services.AddTransient<AssetDetailPage>();
         builder.Services.AddTransient<AssignmentListPage>();
         builder.Services.AddTransient<AssignmentDetailPage>();
+        builder.Services.AddTransient<UserListPage>();
 
         var app = builder.Build();
 
