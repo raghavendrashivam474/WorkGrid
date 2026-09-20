@@ -5,9 +5,13 @@
              x:Class="WorkGrid.App.App">
     <Application.Resources>
         <ResourceDictionary>
+            <converters:ActiveStatusColorConverter x:Key="ActiveStatusColorConverter" />
             <ResourceDictionary.MergedDictionaries>
+            <converters:ActiveStatusColorConverter x:Key="ActiveStatusColorConverter" />
                 <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
+            <converters:ActiveStatusColorConverter x:Key="ActiveStatusColorConverter" />
                 <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
+            <converters:ActiveStatusColorConverter x:Key="ActiveStatusColorConverter" />
             </ResourceDictionary.MergedDictionaries>
 
             <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
@@ -21,3 +25,4 @@
         </ResourceDictionary>
     </Application.Resources>
 </Application>
+

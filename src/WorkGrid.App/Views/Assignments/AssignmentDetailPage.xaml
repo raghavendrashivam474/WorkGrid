@@ -1,0 +1,119 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:WorkGrid.App.ViewModels.Assignments"
+             xmlns:domain="clr-namespace:WorkGrid.Domain.Entities;assembly=WorkGrid.Domain"
+             x:Class="WorkGrid.App.Views.Assignments.AssignmentDetailPage"
+             x:DataType="vm:AssignmentDetailViewModel"
+             Title="{Binding Title}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+            <!-- Error Banner -->
+            <Frame BackgroundColor="#FFEBEE"
+                   BorderColor="#D32F2F"
+                   Padding="10"
+                   CornerRadius="6"
+                   IsVisible="{Binding ErrorMessage, Converter={StaticResource IsNotNullOrEmptyConverter}}">
+                <Label Text="{Binding ErrorMessage}"
+                       TextColor="#D32F2F"
+                       FontSize="13" />
+            </Frame>
+
+            <!-- ── CREATE MODE ── -->
+            <VerticalStackLayout Spacing="16" IsVisible="{Binding IsEditMode, Converter={StaticResource InverseBoolConverter}}">
+                <!-- Select Employee Picker -->
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Assign to Employee *" FontAttributes="Bold" FontSize="13" />
+                    <Picker ItemsSource="{Binding Employees}"
+                            SelectedItem="{Binding SelectedEmployee}"
+                            ItemDisplayBinding="{Binding Name}"
+                            Title="Select an Employee..." />
+                </VerticalStackLayout>
+
+                <!-- Select Asset Picker -->
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Select Available Asset *" FontAttributes="Bold" FontSize="13" />
+                    <Picker ItemsSource="{Binding AvailableAssets}"
+                            SelectedItem="{Binding SelectedAsset}"
+                            ItemDisplayBinding="{Binding Name}"
+                            Title="Select an Asset..." />
+                </VerticalStackLayout>
+
+                <Grid ColumnDefinitions="*, *" ColumnSpacing="10" Margin="0,15,0,0">
+                    <Button Grid.Column="0"
+                            Text="Assign"
+                            Command="{Binding SaveCommand}"
+                            IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}" />
+                    <Button Grid.Column="1"
+                            Text="Cancel"
+                            Command="{Binding CancelCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}" />
+                </Grid>
+            </VerticalStackLayout>
+
+            <!-- ── DETAILS MODE ── -->
+            <VerticalStackLayout Spacing="16" IsVisible="{Binding IsEditMode}">
+                <Frame BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#333333}"
+                       Padding="16"
+                       CornerRadius="8">
+                    <VerticalStackLayout Spacing="12">
+                        <Label Text="Asset Information" FontAttributes="Bold" FontSize="16" TextColor="#512BD4" />
+                        
+                        <Grid ColumnDefinitions="Auto, *" RowDefinitions="Auto, Auto">
+                            <Label Grid.Row="0" Grid.Column="0" Text="Tag:" FontAttributes="Bold" WidthRequest="80" />
+                            <Label Grid.Row="0" Grid.Column="1" Text="{Binding AssetTag}" />
+
+                            <Label Grid.Row="1" Grid.Column="0" Text="Name:" FontAttributes="Bold" WidthRequest="80" Margin="0,5,0,0" />
+                            <Label Grid.Row="1" Grid.Column="1" Text="{Binding AssetName}" Margin="0,5,0,0" />
+                        </Grid>
+
+                        <BoxView HeightRequest="1" Color="LightGray" Margin="0,5" />
+
+                        <Label Text="Employee Information" FontAttributes="Bold" FontSize="16" TextColor="#512BD4" />
+                        
+                        <Grid ColumnDefinitions="Auto, *" RowDefinitions="Auto, Auto">
+                            <Label Grid.Row="0" Grid.Column="0" Text="Code:" FontAttributes="Bold" WidthRequest="80" />
+                            <Label Grid.Row="0" Grid.Column="1" Text="{Binding EmployeeCode}" />
+
+                            <Label Grid.Row="1" Grid.Column="0" Text="Name:" FontAttributes="Bold" WidthRequest="80" Margin="0,5,0,0" />
+                            <Label Grid.Row="1" Grid.Column="1" Text="{Binding EmployeeName}" Margin="0,5,0,0" />
+                        </Grid>
+
+                        <BoxView HeightRequest="1" Color="LightGray" Margin="0,5" />
+
+                        <Label Text="Lifecycle dates" FontAttributes="Bold" FontSize="14" />
+                        
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="{Binding AssignedAt, StringFormat='Assigned At: {0:g}'}" />
+                            <Label Text="{Binding ReturnedAt, StringFormat='Returned At: {0:g}'}" IsVisible="{Binding ReturnedAt, Converter={StaticResource IsNotNullOrEmptyConverter}}" />
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Frame>
+
+                <Button Text="Return Asset"
+                        Command="{Binding ReturnCommand}"
+                        BackgroundColor="#E65100"
+                        TextColor="White"
+                        IsVisible="{Binding IsActive}"
+                        IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}" />
+
+                <Label Text="This asset was returned."
+                       TextColor="Green"
+                       FontAttributes="Italic"
+                       HorizontalOptions="Center"
+                       IsVisible="{Binding IsActive, Converter={StaticResource InverseBoolConverter}}" />
+
+                <Button Text="Back"
+                        Command="{Binding CancelCommand}"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        Margin="0,10,0,0" />
+            </VerticalStackLayout>
+
+            <!-- Activity Indicator -->
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}"
+                               HorizontalOptions="Center" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

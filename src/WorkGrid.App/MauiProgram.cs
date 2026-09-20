@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using WorkGrid.App.ViewModels.Assignments;
+using WorkGrid.App.Views.Assignments;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using WorkGrid.App.ViewModels;
 using WorkGrid.App.ViewModels.Home;
@@ -44,6 +46,8 @@ public static class MauiProgram
         builder.Services.AddTransient<EmployeeDetailViewModel>();
         builder.Services.AddTransient<AssetListViewModel>();
         builder.Services.AddTransient<AssetDetailViewModel>();
+        builder.Services.AddTransient<AssignmentListViewModel>();
+        builder.Services.AddTransient<AssignmentDetailViewModel>();
 
         // Views
         builder.Services.AddTransient<MainPage>();
@@ -52,6 +56,8 @@ public static class MauiProgram
         builder.Services.AddTransient<EmployeeDetailPage>();
         builder.Services.AddTransient<AssetListPage>();
         builder.Services.AddTransient<AssetDetailPage>();
+        builder.Services.AddTransient<AssignmentListPage>();
+        builder.Services.AddTransient<AssignmentDetailPage>();
 
         var app = builder.Build();
 
@@ -65,3 +71,6 @@ public static class MauiProgram
         return app;
     }
 }
+
+
+

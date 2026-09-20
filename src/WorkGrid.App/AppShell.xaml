@@ -4,6 +4,7 @@
        xmlns:home="clr-namespace:WorkGrid.App.Views.Home"
        xmlns:employees="clr-namespace:WorkGrid.App.Views.Employees"
        xmlns:assets="clr-namespace:WorkGrid.App.Views.Assets"
+       xmlns:assignments="clr-namespace:WorkGrid.App.Views.Assignments"
        x:Class="WorkGrid.App.AppShell"
        Title="WorkGrid">
 
@@ -22,4 +23,9 @@
                       Route="assets" />
     </FlyoutItem>
 
+    <FlyoutItem Title="Assignments">
+        <ShellContent ContentTemplate="{DataTemplate assignments:AssignmentListPage}"
+                      Route="assignments" />
+    </FlyoutItem>
 </Shell>
+

@@ -1,4 +1,5 @@
-﻿using WorkGrid.App.Views.Employees;
+﻿using WorkGrid.App.Views.Assignments;
+using WorkGrid.App.Views.Employees;
 using WorkGrid.App.Views.Assets;
 
 namespace WorkGrid.App;
@@ -12,5 +13,7 @@ public partial class AppShell : Shell
         // Detail pages are navigated to, not shown in flyout
         Routing.RegisterRoute("employee-detail", typeof(EmployeeDetailPage));
         Routing.RegisterRoute("asset-detail", typeof(AssetDetailPage));
+        Routing.RegisterRoute("assignment-detail", typeof(AssignmentDetailPage));
     }
 }
+
