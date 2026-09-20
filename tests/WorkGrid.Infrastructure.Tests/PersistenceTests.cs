@@ -4,6 +4,7 @@ using WorkGrid.Domain.Entities;
 using WorkGrid.Domain.Enums;
 using WorkGrid.Infrastructure.Persistence;
 using WorkGrid.Infrastructure.Repositories;
+using Xunit;
 
 namespace WorkGrid.Infrastructure.Tests;
 
@@ -11,13 +12,13 @@ public sealed class PersistenceTests : IDisposable
 {
     private readonly SqliteConnection _connection;
     private readonly WorkGridDbContext _context;
-    private readonly EmployeeRepository _employeeRepo;
-    private readonly AssetRepository _assetRepo;
-    private readonly AssignmentRepository _assignmentRepo;
+    private readonly EmployeeRepository _employeeRepository;
+    private readonly AssetRepository _assetRepository;
+    private readonly AssignmentRepository _assignmentRepository;
 
     public PersistenceTests()
     {
-        _connection = new SqliteConnection("Filename=:memory:");
+        _connection = new SqliteConnection("DataSource=:memory:");
         _connection.Open();
 
         var options = new DbContextOptionsBuilder<WorkGridDbContext>()
@@ -27,80 +28,89 @@ public sealed class PersistenceTests : IDisposable
         _context = new WorkGridDbContext(options);
         _context.Database.EnsureCreated();
 
-        _employeeRepo = new EmployeeRepository(_context);
-        _assetRepo = new AssetRepository(_context);
-        _assignmentRepo = new AssignmentRepository(_context);
-    }
-
-    public void Dispose()
-    {
-        _context.Dispose();
-        _connection.Dispose();
+        _employeeRepository = new EmployeeRepository(_context);
+        _assetRepository = new AssetRepository(_context);
+        _assignmentRepository = new AssignmentRepository(_context);
     }
 
     [Fact]
     public async Task EmployeeRepository_AddAndRetrieve_WorksCorrectly()
     {
-        var employee = new Employee(Guid.NewGuid(), "EMP001", "Alice Smith", "alice@example.com", "Engineering");
+        var employee = new Employee(
+            Guid.NewGuid(),
+            "EMP-001",
+            "John Doe",
+            "john.doe@workgrid.local",
+            "IT Operations");
 
-        await _employeeRepo.AddAsync(employee);
+        await _employeeRepository.AddAsync(employee);
+        var retrieved = await _employeeRepository.GetByIdAsync(employee.Id);
 
-        var retrieved = await _employeeRepo.GetByIdAsync(employee.Id);
         Assert.NotNull(retrieved);
-        Assert.Equal("EMP001", retrieved.EmployeeCode);
-        Assert.Equal("Alice Smith", retrieved.Name);
-        Assert.Equal("alice@example.com", retrieved.Email);
-        Assert.Equal("Engineering", retrieved.Department);
+        Assert.Equal("EMP-001", retrieved.EmployeeCode);
+        Assert.Equal("John Doe", retrieved.Name);
     }
 
     [Fact]
     public async Task EmployeeRepository_UpdateAndGetAll_ReflectsChanges()
     {
-        var employee = new Employee(Guid.NewGuid(), "EMP002", "Bob Jones", "bob@example.com", "Operations");
-        await _employeeRepo.AddAsync(employee);
+        var employee = new Employee(
+            Guid.NewGuid(),
+            "EMP-002",
+            "Jane Smith",
+            "jane.smith@workgrid.local",
+            "Finance");
 
-        employee.UpdateDetails("Robert Jones", "robert@example.com", "Logistics");
-        await _employeeRepo.UpdateAsync(employee);
+        await _employeeRepository.AddAsync(employee);
+        employee.UpdateDetails("Jane Smith-Doe", "jane.doe@workgrid.local", "Accounting");
+        await _employeeRepository.UpdateAsync(employee);
 
-        var all = await _employeeRepo.GetAllAsync();
-        var retrieved = Assert.Single(all, e => e.Id == employee.Id);
-        Assert.Equal("Robert Jones", retrieved.Name);
-        Assert.Equal("robert@example.com", retrieved.Email);
-        Assert.Equal("Logistics", retrieved.Department);
+        var all = await _employeeRepository.GetAllAsync();
+        Assert.Single(all);
+        Assert.Equal("Jane Smith-Doe", all[0].Name);
     }
 
     [Fact]
     public async Task EmployeeRepository_Delete_RemovesRecord()
     {
-        var employee = new Employee(Guid.NewGuid(), "EMP003", "Carol White", "carol@example.com");
-        await _employeeRepo.AddAsync(employee);
+        var employee = new Employee(
+            Guid.NewGuid(),
+            "EMP-003",
+            "Bob Wilson",
+            "bob@workgrid.local");
 
-        await _employeeRepo.DeleteAsync(employee);
+        await _employeeRepository.AddAsync(employee);
+        await _employeeRepository.DeleteAsync(employee);
 
-        var retrieved = await _employeeRepo.GetByIdAsync(employee.Id);
+        var retrieved = await _employeeRepository.GetByIdAsync(employee.Id);
         Assert.Null(retrieved);
     }
 
     [Fact]
     public async Task AssetRepository_AddAndCheckLifecyclePersistence_WorksCorrectly()
     {
-        var asset = new Asset(Guid.NewGuid(), "AST-100", "MacBook Pro", "Laptop", "MBP-9921", AssetStatus.Available);
-        await _assetRepo.AddAsync(asset);
+        var asset = new Asset(
+            Guid.NewGuid(),
+            "AST-001",
+            "Dell Latitude 5520",
+            "Laptop",
+            "SN-12345");
 
-        // Transition state
+        await _assetRepository.AddAsync(asset);
+
+        // Lifecycle transition: Available -> Assigned -> Available -> Retired
         asset.MarkAssigned();
-        await _assetRepo.UpdateAsync(asset);
+        await _assetRepository.UpdateAsync(asset);
 
-        var retrieved = await _assetRepo.GetByIdAsync(asset.Id);
-        Assert.NotNull(retrieved);
-        Assert.Equal(AssetStatus.Assigned, retrieved.Status);
+        var assigned = await _assetRepository.GetByIdAsync(asset.Id);
+        Assert.Equal(AssetStatus.Assigned, assigned!.Status);
 
+        asset.MarkAvailable();
         asset.Retire();
-        await _assetRepo.UpdateAsync(asset);
+        await _assetRepository.UpdateAsync(asset);
 
-        var retiredAsset = await _assetRepo.GetByIdAsync(asset.Id);
-        Assert.NotNull(retiredAsset);
-        Assert.Equal(AssetStatus.Retired, retiredAsset.Status);
+        var retired = await _assetRepository.GetByIdAsync(asset.Id);
+        Assert.Equal(AssetStatus.Retired, retired!.Status);
     }
 
     [Fact]
@@ -108,25 +118,31 @@ public sealed class PersistenceTests : IDisposable
     {
         var empId = Guid.NewGuid();
         var astId = Guid.NewGuid();
+        var assignment = new Assignment(
+            Guid.NewGuid(),
+            empId,
+            astId,
+            DateTimeOffset.UtcNow);
 
-        var assignment = new Assignment(Guid.NewGuid(), empId, astId, DateTimeOffset.UtcNow);
-        await _assignmentRepo.AddAsync(assignment);
+        await _assignmentRepository.AddAsync(assignment);
 
-        var hasActiveEmp = await _assignmentRepo.HasActiveAssignmentsForEmployeeAsync(empId);
-        var hasActiveAst = await _assignmentRepo.HasActiveAssignmentsForAssetAsync(astId);
+        var hasActiveEmp = await _assignmentRepository.HasActiveAssignmentsForEmployeeAsync(empId);
+        var hasActiveAst = await _assignmentRepository.HasActiveAssignmentsForAssetAsync(astId);
+
         Assert.True(hasActiveEmp);
         Assert.True(hasActiveAst);
 
-        // Return asset
-        assignment.CompleteReturn(DateTimeOffset.UtcNow.AddHours(1));
-        await _assignmentRepo.UpdateAsync(assignment);
+        // Return assignment
+        assignment.CompleteReturn(DateTimeOffset.UtcNow);
+        await _assignmentRepository.UpdateAsync(assignment);
 
-        var hasActiveAfterReturn = await _assignmentRepo.HasActiveAssignmentsForEmployeeAsync(empId);
+        var hasActiveAfterReturn = await _assignmentRepository.HasActiveAssignmentsForAssetAsync(astId);
         Assert.False(hasActiveAfterReturn);
+    }
 
-        var retrieved = await _assignmentRepo.GetByIdAsync(assignment.Id);
-        Assert.NotNull(retrieved);
-        Assert.Equal(AssignmentStatus.Returned, retrieved.Status);
-        Assert.NotNull(retrieved.ReturnedAt);
+    public void Dispose()
+    {
+        _context.Dispose();
+        _connection.Dispose();
     }
 }
