@@ -1,7 +1,10 @@
-﻿using System.Windows.Input;
+﻿using System.Collections.ObjectModel;
+using System.Windows.Input;
 using WorkGrid.App.ViewModels.Base;
+using WorkGrid.App.ViewModels.Common;
 using WorkGrid.Domain.Contracts;
 using WorkGrid.Domain.Entities;
+using WorkGrid.Domain.Enums;
 using WorkGrid.Domain.Exceptions;
 
 namespace WorkGrid.App.ViewModels.Employees;
@@ -11,6 +14,7 @@ public sealed class EmployeeDetailViewModel : ViewModelBase
 {
     private readonly IEmployeeRepository _employeeRepository;
     private readonly IAssignmentRepository _assignmentRepository;
+    private readonly IAssetRepository _assetRepository;
 
     private Guid _id;
     private string? _idString;
@@ -23,6 +27,9 @@ public sealed class EmployeeDetailViewModel : ViewModelBase
     private bool _isBusy;
     private bool _isEditMode;
     private bool _canDelete;
+
+    public ObservableCollection<AssignmentHistoryItem> ActiveAssignments { get; } = new();
+    public ObservableCollection<AssignmentHistoryItem> HistoryAssignments { get; } = new();
 
     public string? IdString
     {
@@ -43,6 +50,8 @@ public sealed class EmployeeDetailViewModel : ViewModelBase
                 IsEditMode = false;
                 Title = "New Employee";
                 CanDelete = false;
+                ActiveAssignments.Clear();
+                HistoryAssignments.Clear();
             }
         }
     }
@@ -107,10 +116,12 @@ public sealed class EmployeeDetailViewModel : ViewModelBase
 
     public EmployeeDetailViewModel(
         IEmployeeRepository employeeRepository,
-        IAssignmentRepository assignmentRepository)
+        IAssignmentRepository assignmentRepository,
+        IAssetRepository assetRepository)
     {
         _employeeRepository = employeeRepository ?? throw new ArgumentNullException(nameof(employeeRepository));
         _assignmentRepository = assignmentRepository ?? throw new ArgumentNullException(nameof(assignmentRepository));
+        _assetRepository = assetRepository ?? throw new ArgumentNullException(nameof(assetRepository));
 
         SaveCommand = new Command(async () => await SaveAsync());
         DeleteCommand = new Command(async () => await DeleteAsync());
@@ -134,6 +145,36 @@ public sealed class EmployeeDetailViewModel : ViewModelBase
                 Email = emp.Email;
                 Department = emp.Department;
                 CanDelete = true;
+
+                // Load relational assignments
+                var rawAssignments = await _assignmentRepository.GetByEmployeeIdAsync(_id);
+                var assets = await _assetRepository.GetAllAsync();
+                var assetMap = assets.ToDictionary(a => a.Id);
+
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    ActiveAssignments.Clear();
+                    HistoryAssignments.Clear();
+
+                    foreach (var asm in rawAssignments)
+                    {
+                        assetMap.TryGetValue(asm.AssetId, out var ast);
+                        var item = new AssignmentHistoryItem
+                        {
+                            AssignmentId = asm.Id,
+                            ReferenceId = asm.AssetId,
+                            Title = $"{ast?.AssetTag ?? "N/A"} — {ast?.Name ?? "Unknown Asset"}",
+                            Subtitle = ast?.AssetType ?? "Asset",
+                            AssignedAt = asm.AssignedAt,
+                            ReturnedAt = asm.ReturnedAt
+                        };
+
+                        if (asm.Status == AssignmentStatus.Active)
+                            ActiveAssignments.Add(item);
+                        else
+                            HistoryAssignments.Add(item);
+                    }
+                });
             }
             else
             {
@@ -156,7 +197,6 @@ public sealed class EmployeeDetailViewModel : ViewModelBase
 
         ErrorMessage = string.Empty;
 
-        // UI-level basic pre-checks
         if (string.IsNullOrWhiteSpace(EmployeeCode) && !IsEditMode)
         {
             ErrorMessage = "Employee code is required.";
@@ -188,13 +228,11 @@ public sealed class EmployeeDetailViewModel : ViewModelBase
                     return;
                 }
 
-                // Domain invariant method
                 existing.UpdateDetails(Name, Email, Department);
                 await _employeeRepository.UpdateAsync(existing);
             }
             else
             {
-                // Check uniqueness of code
                 var exists = await _employeeRepository.ExistsByCodeAsync(EmployeeCode);
                 if (exists)
                 {
@@ -202,7 +240,6 @@ public sealed class EmployeeDetailViewModel : ViewModelBase
                     return;
                 }
 
-                // Domain invariant constructor
                 var newEmployee = new Employee(
                     Guid.NewGuid(),
                     EmployeeCode,
@@ -238,7 +275,6 @@ public sealed class EmployeeDetailViewModel : ViewModelBase
 
         try
         {
-            // Business Rule (S1.3.4): Check if employee has active assignments
             var hasActive = await _assignmentRepository.HasActiveAssignmentsForEmployeeAsync(_id);
             if (hasActive)
             {

@@ -1,5 +1,7 @@
-﻿using System.Windows.Input;
+﻿using System.Collections.ObjectModel;
+using System.Windows.Input;
 using WorkGrid.App.ViewModels.Base;
+using WorkGrid.App.ViewModels.Common;
 using WorkGrid.Domain.Contracts;
 using WorkGrid.Domain.Entities;
 using WorkGrid.Domain.Enums;
@@ -12,6 +14,7 @@ public sealed class AssetDetailViewModel : ViewModelBase
 {
     private readonly IAssetRepository _assetRepository;
     private readonly IAssignmentRepository _assignmentRepository;
+    private readonly IEmployeeRepository _employeeRepository;
 
     private Guid _id;
     private string? _idString;
@@ -26,6 +29,14 @@ public sealed class AssetDetailViewModel : ViewModelBase
     private bool _isEditMode;
     private bool _canDelete;
     private bool _isRetired;
+
+    // Current Holder details
+    private bool _hasCurrentHolder;
+    private string _currentHolderName = string.Empty;
+    private string _currentHolderCode = string.Empty;
+    private DateTimeOffset? _currentHolderAssignedAt;
+
+    public ObservableCollection<AssignmentHistoryItem> AssignmentHistory { get; } = new();
 
     public string? IdString
     {
@@ -47,7 +58,9 @@ public sealed class AssetDetailViewModel : ViewModelBase
                 Title = "New Asset";
                 CanDelete = false;
                 IsRetired = false;
+                HasCurrentHolder = false;
                 Status = AssetStatus.Available;
+                AssignmentHistory.Clear();
             }
         }
     }
@@ -122,6 +135,30 @@ public sealed class AssetDetailViewModel : ViewModelBase
         set => SetProperty(ref _isRetired, value);
     }
 
+    public bool HasCurrentHolder
+    {
+        get => _hasCurrentHolder;
+        set => SetProperty(ref _hasCurrentHolder, value);
+    }
+
+    public string CurrentHolderName
+    {
+        get => _currentHolderName;
+        set => SetProperty(ref _currentHolderName, value);
+    }
+
+    public string CurrentHolderCode
+    {
+        get => _currentHolderCode;
+        set => SetProperty(ref _currentHolderCode, value);
+    }
+
+    public DateTimeOffset? CurrentHolderAssignedAt
+    {
+        get => _currentHolderAssignedAt;
+        set => SetProperty(ref _currentHolderAssignedAt, value);
+    }
+
     public ICommand SaveCommand { get; }
     public ICommand DeleteCommand { get; }
     public ICommand CancelCommand { get; }
@@ -131,10 +168,12 @@ public sealed class AssetDetailViewModel : ViewModelBase
 
     public AssetDetailViewModel(
         IAssetRepository assetRepository,
-        IAssignmentRepository assignmentRepository)
+        IAssignmentRepository assignmentRepository,
+        IEmployeeRepository employeeRepository)
     {
         _assetRepository = assetRepository ?? throw new ArgumentNullException(nameof(assetRepository));
         _assignmentRepository = assignmentRepository ?? throw new ArgumentNullException(nameof(assignmentRepository));
+        _employeeRepository = employeeRepository ?? throw new ArgumentNullException(nameof(employeeRepository));
 
         SaveCommand = new Command(async () => await SaveAsync());
         DeleteCommand = new Command(async () => await DeleteAsync());
@@ -163,6 +202,45 @@ public sealed class AssetDetailViewModel : ViewModelBase
                 SerialNumber = ast.SerialNumber;
                 Status = ast.Status;
                 CanDelete = true;
+
+                // Load assignment history & active holder
+                var rawAssignments = await _assignmentRepository.GetByAssetIdAsync(_id);
+                var employees = await _employeeRepository.GetAllAsync();
+                var empMap = employees.ToDictionary(e => e.Id);
+
+                var active = rawAssignments.FirstOrDefault(a => a.Status == AssignmentStatus.Active);
+                if (active != null && empMap.TryGetValue(active.EmployeeId, out var empHolder))
+                {
+                    HasCurrentHolder = true;
+                    CurrentHolderName = empHolder.Name;
+                    CurrentHolderCode = empHolder.EmployeeCode;
+                    CurrentHolderAssignedAt = active.AssignedAt;
+                }
+                else
+                {
+                    HasCurrentHolder = false;
+                    CurrentHolderName = string.Empty;
+                    CurrentHolderCode = string.Empty;
+                    CurrentHolderAssignedAt = null;
+                }
+
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    AssignmentHistory.Clear();
+                    foreach (var asm in rawAssignments)
+                    {
+                        empMap.TryGetValue(asm.EmployeeId, out var holder);
+                        AssignmentHistory.Add(new AssignmentHistoryItem
+                        {
+                            AssignmentId = asm.Id,
+                            ReferenceId = asm.EmployeeId,
+                            Title = holder?.Name ?? "Unknown Employee",
+                            Subtitle = holder?.EmployeeCode ?? "N/A",
+                            AssignedAt = asm.AssignedAt,
+                            ReturnedAt = asm.ReturnedAt
+                        });
+                    }
+                });
             }
             else
             {

@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:WorkGrid.App.ViewModels.Assets"
+             xmlns:common="clr-namespace:WorkGrid.App.ViewModels.Common"
              x:Class="WorkGrid.App.Views.Assets.AssetDetailPage"
              x:DataType="vm:AssetDetailViewModel"
              Title="{Binding Title}">
@@ -59,6 +60,22 @@
                 </VerticalStackLayout>
             </Frame>
 
+            <!-- Current Holder Card (Edit Mode Only) -->
+            <Frame BackgroundColor="{AppThemeBinding Light=#E3F2FD, Dark=#0D47A1}"
+                   Padding="12"
+                   CornerRadius="8"
+                   IsVisible="{Binding HasCurrentHolder}">
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Current Holder" FontAttributes="Bold" TextColor="#1565C0" FontSize="14" />
+                    <HorizontalStackLayout Spacing="6">
+                        <Label Text="{Binding CurrentHolderName}" FontAttributes="Bold" FontSize="15" />
+                        <Label Text="—" TextColor="Gray" />
+                        <Label Text="{Binding CurrentHolderCode}" TextColor="Gray" FontSize="15" />
+                    </HorizontalStackLayout>
+                    <Label Text="{Binding CurrentHolderAssignedAt, StringFormat='Holding since: {0:g}'}" TextColor="DimGray" FontSize="12" />
+                </VerticalStackLayout>
+            </Frame>
+
             <!-- Asset Tag (Disabled if editing) -->
             <VerticalStackLayout Spacing="4">
                 <Label Text="Asset Tag *" FontAttributes="Bold" FontSize="13" />
@@ -86,6 +103,30 @@
                 <Label Text="Serial Number" FontAttributes="Bold" FontSize="13" />
                 <Entry Text="{Binding SerialNumber}"
                        Placeholder="e.g. SN-98218392" />
+            </VerticalStackLayout>
+
+            <!-- ── ASSIGNMENT HISTORY (Edit Mode Only) ── -->
+            <VerticalStackLayout Spacing="8" IsVisible="{Binding IsEditMode}">
+                <Label Text="Assignment History" FontAttributes="Bold" FontSize="15" TextColor="#512BD4" Margin="0,10,0,0" />
+                <CollectionView ItemsSource="{Binding AssignmentHistory}" SelectionMode="None">
+                    <CollectionView.EmptyView>
+                        <Label Text="No assignment history for this asset." TextColor="Gray" FontSize="12" FontAttributes="Italic" Margin="4,0" />
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="common:AssignmentHistoryItem">
+                            <Frame Margin="0,2" Padding="10" CornerRadius="6" BackgroundColor="{AppThemeBinding Light=#FAFAFA, Dark=#2A2A2A}">
+                                <Grid ColumnDefinitions="*, Auto">
+                                    <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                        <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="14" />
+                                        <Label Text="{Binding AssignedAt, StringFormat='Assigned: {0:d}'}" TextColor="DimGray" FontSize="11" />
+                                        <Label Text="{Binding ReturnedAt, StringFormat='Returned: {0:d}'}" TextColor="DimGray" FontSize="11" IsVisible="{Binding ReturnedAt, Converter={StaticResource IsNotNullOrEmptyConverter}}" />
+                                    </VerticalStackLayout>
+                                    <Label Grid.Column="1" Text="{Binding StatusDisplay}" TextColor="{Binding IsActive, Converter={StaticResource ActiveStatusColorConverter}}" FontAttributes="Bold" VerticalOptions="Center" />
+                                </Grid>
+                            </Frame>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
             </VerticalStackLayout>
 
             <!-- Actions -->
