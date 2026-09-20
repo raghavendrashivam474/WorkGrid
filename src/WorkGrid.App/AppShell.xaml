@@ -1,31 +1,36 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
-<Shell xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-       xmlns:home="clr-namespace:WorkGrid.App.Views.Home"
-       xmlns:employees="clr-namespace:WorkGrid.App.Views.Employees"
-       xmlns:assets="clr-namespace:WorkGrid.App.Views.Assets"
-       xmlns:assignments="clr-namespace:WorkGrid.App.Views.Assignments"
-       x:Class="WorkGrid.App.AppShell"
-       Title="WorkGrid">
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="WorkGrid.App.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:home="clr-namespace:WorkGrid.App.Views.Home"
+    xmlns:employees="clr-namespace:WorkGrid.App.Views.Employees"
+    xmlns:assets="clr-namespace:WorkGrid.App.Views.Assets"
+    xmlns:assignments="clr-namespace:WorkGrid.App.Views.Assignments"
+    xmlns:auth="clr-namespace:WorkGrid.App.Views.Auth"
+    Title="WorkGrid">
 
-    <FlyoutItem Title="Home">
-        <ShellContent ContentTemplate="{DataTemplate home:HomePage}"
-                      Route="home" />
-    </FlyoutItem>
+    <ShellContent
+        Route="login"
+        ContentTemplate="{DataTemplate auth:LoginPage}"
+        FlyoutItemIsVisible="False" />
 
-    <FlyoutItem Title="Employees">
-        <ShellContent ContentTemplate="{DataTemplate employees:EmployeeListPage}"
-                      Route="employees" />
-    </FlyoutItem>
+    <TabBar Route="main">
+        <Tab Title="Dashboard" Icon="home.png" Route="home">
+            <ShellContent ContentTemplate="{DataTemplate home:HomePage}" />
+        </Tab>
 
-    <FlyoutItem Title="Assets">
-        <ShellContent ContentTemplate="{DataTemplate assets:AssetListPage}"
-                      Route="assets" />
-    </FlyoutItem>
+        <Tab Title="Employees" Icon="employee.png" Route="employees">
+            <ShellContent ContentTemplate="{DataTemplate employees:EmployeeListPage}" />
+        </Tab>
 
-    <FlyoutItem Title="Assignments">
-        <ShellContent ContentTemplate="{DataTemplate assignments:AssignmentListPage}"
-                      Route="assignments" />
-    </FlyoutItem>
+        <Tab Title="Assets" Icon="asset.png" Route="assets">
+            <ShellContent ContentTemplate="{DataTemplate assets:AssetListPage}" />
+        </Tab>
+
+        <Tab Title="Assignments" Icon="assignment.png" Route="assignments">
+            <ShellContent ContentTemplate="{DataTemplate assignments:AssignmentListPage}" />
+        </Tab>
+    </TabBar>
+
 </Shell>
-

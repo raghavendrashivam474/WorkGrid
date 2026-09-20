@@ -1,0 +1,116 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:authVm="clr-namespace:WorkGrid.App.ViewModels.Auth"
+             x:Class="WorkGrid.App.Views.Auth.LoginPage"
+             x:DataType="authVm:LoginViewModel"
+             Title="WorkGrid Access"
+             BackgroundColor="{AppThemeBinding Light=#F5F6F8, Dark=#121212}">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="20" Padding="30" VerticalOptions="Center" MaximumWidthRequest="420">
+            <!-- App Header / Brand -->
+            <Label Text="WorkGrid"
+                   FontSize="32"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"
+                   TextColor="{AppThemeBinding Light=#1E293B, Dark=#F8FAFC}" />
+            
+            <Label Text="{Binding IsFirstRunSetup, Converter={x:Null}, StringFormat='{0}'}"
+                   IsVisible="False" />
+
+            <!-- First-run Setup Header -->
+            <VerticalStackLayout IsVisible="{Binding IsFirstRunSetup}" Spacing="6">
+                <Label Text="Initial Setup"
+                       FontSize="20"
+                       FontAttributes="Bold"
+                       HorizontalOptions="Center"
+                       TextColor="#0284C7" />
+                <Label Text="Create the primary administrator account for this WorkGrid installation."
+                       FontSize="13"
+                       HorizontalOptions="Center"
+                       HorizontalTextAlignment="Center"
+                       TextColor="#64748B" />
+            </VerticalStackLayout>
+
+            <!-- Regular Login Header -->
+            <VerticalStackLayout IsVisible="{Binding IsNormalLogin}" Spacing="6">
+                <Label Text="Sign In"
+                       FontSize="20"
+                       FontAttributes="Bold"
+                       HorizontalOptions="Center"
+                       TextColor="{AppThemeBinding Light=#334155, Dark=#E2E8F0}" />
+                <Label Text="Sign in with your local credentials to continue."
+                       FontSize="13"
+                       HorizontalOptions="Center"
+                       TextColor="#64748B" />
+            </VerticalStackLayout>
+
+            <!-- Error Banner -->
+            <Frame BackgroundColor="#FEE2E2"
+                   BorderColor="#EF4444"
+                   CornerRadius="8"
+                   Padding="12"
+                   IsVisible="{Binding HasError}">
+                <Label Text="{Binding ErrorMessage}"
+                       TextColor="#B91C1C"
+                       FontSize="13"
+                       LineBreakMode="WordWrap" />
+            </Frame>
+
+            <!-- Input Fields -->
+            <VerticalStackLayout Spacing="14">
+                <!-- Display Name (Setup Only) -->
+                <VerticalStackLayout IsVisible="{Binding IsFirstRunSetup}" Spacing="4">
+                    <Label Text="Full Name / Display Name" FontSize="12" FontAttributes="Bold" TextColor="#475569" />
+                    <Entry Text="{Binding DisplayName}" Placeholder="e.g. Alice System Admin" />
+                </VerticalStackLayout>
+
+                <!-- Username -->
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Username" FontSize="12" FontAttributes="Bold" TextColor="#475569" />
+                    <Entry Text="{Binding Username}" Placeholder="Enter your username" />
+                </VerticalStackLayout>
+
+                <!-- Password -->
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Password" FontSize="12" FontAttributes="Bold" TextColor="#475569" />
+                    <Entry Text="{Binding Password}" IsPassword="True" Placeholder="Enter your password" />
+                </VerticalStackLayout>
+
+                <!-- Confirm Password (Setup Only) -->
+                <VerticalStackLayout IsVisible="{Binding IsFirstRunSetup}" Spacing="4">
+                    <Label Text="Confirm Password" FontSize="12" FontAttributes="Bold" TextColor="#475569" />
+                    <Entry Text="{Binding ConfirmPassword}" IsPassword="True" Placeholder="Re-enter password" />
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+
+            <!-- Buttons & Actions -->
+            <VerticalStackLayout Spacing="10" Margin="0,10,0,0">
+                <Button Text="Sign In"
+                        Command="{Binding LoginCommand}"
+                        IsVisible="{Binding IsNormalLogin}"
+                        BackgroundColor="#2563EB"
+                        TextColor="White"
+                        CornerRadius="8"
+                        HeightRequest="46"
+                        FontAttributes="Bold" />
+
+                <Button Text="Create Administrator &amp; Start"
+                        Command="{Binding SetupAdminCommand}"
+                        IsVisible="{Binding IsFirstRunSetup}"
+                        BackgroundColor="#059669"
+                        TextColor="White"
+                        CornerRadius="8"
+                        HeightRequest="46"
+                        FontAttributes="Bold" />
+
+                <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                   IsVisible="{Binding IsBusy}"
+                                   Color="#2563EB"
+                                   HorizontalOptions="Center" />
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

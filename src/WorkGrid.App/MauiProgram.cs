@@ -6,10 +6,12 @@ using WorkGrid.App.ViewModels;
 using WorkGrid.App.ViewModels.Home;
 using WorkGrid.App.ViewModels.Employees;
 using WorkGrid.App.ViewModels.Assets;
+using WorkGrid.App.ViewModels.Auth;
 using WorkGrid.App.Views;
 using WorkGrid.App.Views.Home;
 using WorkGrid.App.Views.Employees;
 using WorkGrid.App.Views.Assets;
+using WorkGrid.App.Views.Auth;
 using WorkGrid.Infrastructure.DependencyInjection;
 using WorkGrid.Infrastructure.Persistence;
 
@@ -40,6 +42,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<AppShell>();
 
         // ViewModels
+        builder.Services.AddTransient<LoginViewModel>();
         builder.Services.AddTransient<MainViewModel>();
         builder.Services.AddTransient<HomeViewModel>();
         builder.Services.AddTransient<EmployeeListViewModel>();
@@ -50,6 +53,7 @@ public static class MauiProgram
         builder.Services.AddTransient<AssignmentDetailViewModel>();
 
         // Views
+        builder.Services.AddTransient<LoginPage>();
         builder.Services.AddTransient<MainPage>();
         builder.Services.AddTransient<HomePage>();
         builder.Services.AddTransient<EmployeeListPage>();
@@ -61,7 +65,7 @@ public static class MauiProgram
 
         var app = builder.Build();
 
-        // Ensure database is initialized at startup
+        // Ensure database is migrated at startup
         using (var scope = app.Services.CreateScope())
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<WorkGridDbContext>();
@@ -71,7 +75,3 @@ public static class MauiProgram
         return app;
     }
 }
-
-
-
-
