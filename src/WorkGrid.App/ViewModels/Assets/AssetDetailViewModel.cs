@@ -15,6 +15,7 @@ public sealed class AssetDetailViewModel : ViewModelBase
     private readonly IAssetRepository _assetRepository;
     private readonly IAssignmentRepository _assignmentRepository;
     private readonly IEmployeeRepository _employeeRepository;
+    private readonly IAuthorizationService _authorizationService;
 
     private Guid _id;
     private string? _idString;
@@ -49,7 +50,7 @@ public sealed class AssetDetailViewModel : ViewModelBase
                 _id = parsedId;
                 IsEditMode = true;
                 Title = "Edit Asset";
-                Task.Run(LoadAssetAsync);
+                MainThread.BeginInvokeOnMainThread(async () => await LoadAssetAsync());
             }
             else
             {
@@ -169,19 +170,21 @@ public sealed class AssetDetailViewModel : ViewModelBase
     public AssetDetailViewModel(
         IAssetRepository assetRepository,
         IAssignmentRepository assignmentRepository,
-        IEmployeeRepository employeeRepository)
+        IEmployeeRepository employeeRepository,
+        IAuthorizationService authorizationService)
     {
         _assetRepository = assetRepository ?? throw new ArgumentNullException(nameof(assetRepository));
         _assignmentRepository = assignmentRepository ?? throw new ArgumentNullException(nameof(assignmentRepository));
         _employeeRepository = employeeRepository ?? throw new ArgumentNullException(nameof(employeeRepository));
+        _authorizationService = authorizationService ?? throw new ArgumentNullException(nameof(authorizationService));
 
         SaveCommand = new Command(async () => await SaveAsync());
         DeleteCommand = new Command(async () => await DeleteAsync());
         CancelCommand = new Command(async () => await Shell.Current.GoToAsync(".."));
 
-        MarkAvailableCommand = new Command(async () => await ChangeStatusAsync(a => a.MarkAvailable()));
-        MarkMaintenanceCommand = new Command(async () => await ChangeStatusAsync(a => a.MarkMaintenance()));
-        RetireCommand = new Command(async () => await ChangeStatusAsync(a => a.Retire()));
+        MarkAvailableCommand = new Command(async () => await ChangeStatusAsync(a => a.MarkAvailable(), AppPermission.AssetMaintenance));
+        MarkMaintenanceCommand = new Command(async () => await ChangeStatusAsync(a => a.MarkMaintenance(), AppPermission.AssetMaintenance));
+        RetireCommand = new Command(async () => await ChangeStatusAsync(a => a.Retire(), AppPermission.AssetRetire));
     }
 
     public async Task LoadAssetAsync()
@@ -201,7 +204,7 @@ public sealed class AssetDetailViewModel : ViewModelBase
                 AssetType = ast.AssetType;
                 SerialNumber = ast.SerialNumber;
                 Status = ast.Status;
-                CanDelete = true;
+                CanDelete = _authorizationService.HasPermission(AppPermission.AssetDelete);
 
                 // Load assignment history & active holder
                 var rawAssignments = await _assignmentRepository.GetByAssetIdAsync(_id);
@@ -281,6 +284,8 @@ public sealed class AssetDetailViewModel : ViewModelBase
         {
             if (IsEditMode)
             {
+                _authorizationService.EnsurePermission(AppPermission.AssetEdit);
+
                 var existing = await _assetRepository.GetByIdAsync(_id);
                 if (existing == null)
                 {
@@ -293,6 +298,8 @@ public sealed class AssetDetailViewModel : ViewModelBase
             }
             else
             {
+                _authorizationService.EnsurePermission(AppPermission.AssetCreate);
+
                 var exists = await _assetRepository.ExistsByTagAsync(AssetTag);
                 if (exists)
                 {
@@ -327,7 +334,7 @@ public sealed class AssetDetailViewModel : ViewModelBase
         }
     }
 
-    private async Task ChangeStatusAsync(Action<Asset> transition)
+    private async Task ChangeStatusAsync(Action<Asset> transition, AppPermission requiredPermission)
     {
         if (IsBusy || !IsEditMode || _id == Guid.Empty) return;
 
@@ -336,6 +343,8 @@ public sealed class AssetDetailViewModel : ViewModelBase
 
         try
         {
+            _authorizationService.EnsurePermission(requiredPermission);
+
             var existing = await _assetRepository.GetByIdAsync(_id);
             if (existing == null)
             {
@@ -370,6 +379,8 @@ public sealed class AssetDetailViewModel : ViewModelBase
 
         try
         {
+            _authorizationService.EnsurePermission(AppPermission.AssetDelete);
+
             var hasActive = await _assignmentRepository.HasActiveAssignmentsForAssetAsync(_id);
             if (hasActive)
             {

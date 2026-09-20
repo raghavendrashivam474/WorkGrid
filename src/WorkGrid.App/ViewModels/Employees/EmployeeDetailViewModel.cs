@@ -15,6 +15,7 @@ public sealed class EmployeeDetailViewModel : ViewModelBase
     private readonly IEmployeeRepository _employeeRepository;
     private readonly IAssignmentRepository _assignmentRepository;
     private readonly IAssetRepository _assetRepository;
+    private readonly IAuthorizationService _authorizationService;
 
     private Guid _id;
     private string? _idString;
@@ -42,7 +43,7 @@ public sealed class EmployeeDetailViewModel : ViewModelBase
                 _id = parsedId;
                 IsEditMode = true;
                 Title = "Edit Employee";
-                Task.Run(LoadEmployeeAsync);
+                MainThread.BeginInvokeOnMainThread(async () => await LoadEmployeeAsync());
             }
             else
             {
@@ -117,11 +118,13 @@ public sealed class EmployeeDetailViewModel : ViewModelBase
     public EmployeeDetailViewModel(
         IEmployeeRepository employeeRepository,
         IAssignmentRepository assignmentRepository,
-        IAssetRepository assetRepository)
+        IAssetRepository assetRepository,
+        IAuthorizationService authorizationService)
     {
         _employeeRepository = employeeRepository ?? throw new ArgumentNullException(nameof(employeeRepository));
         _assignmentRepository = assignmentRepository ?? throw new ArgumentNullException(nameof(assignmentRepository));
         _assetRepository = assetRepository ?? throw new ArgumentNullException(nameof(assetRepository));
+        _authorizationService = authorizationService ?? throw new ArgumentNullException(nameof(authorizationService));
 
         SaveCommand = new Command(async () => await SaveAsync());
         DeleteCommand = new Command(async () => await DeleteAsync());
@@ -144,7 +147,7 @@ public sealed class EmployeeDetailViewModel : ViewModelBase
                 Name = emp.Name;
                 Email = emp.Email;
                 Department = emp.Department;
-                CanDelete = true;
+                CanDelete = _authorizationService.HasPermission(AppPermission.EmployeeDelete);
 
                 // Load relational assignments
                 var rawAssignments = await _assignmentRepository.GetByEmployeeIdAsync(_id);
@@ -221,6 +224,8 @@ public sealed class EmployeeDetailViewModel : ViewModelBase
         {
             if (IsEditMode)
             {
+                _authorizationService.EnsurePermission(AppPermission.EmployeeEdit);
+
                 var existing = await _employeeRepository.GetByIdAsync(_id);
                 if (existing == null)
                 {
@@ -233,6 +238,8 @@ public sealed class EmployeeDetailViewModel : ViewModelBase
             }
             else
             {
+                _authorizationService.EnsurePermission(AppPermission.EmployeeCreate);
+
                 var exists = await _employeeRepository.ExistsByCodeAsync(EmployeeCode);
                 if (exists)
                 {
@@ -275,6 +282,8 @@ public sealed class EmployeeDetailViewModel : ViewModelBase
 
         try
         {
+            _authorizationService.EnsurePermission(AppPermission.EmployeeDelete);
+
             var hasActive = await _assignmentRepository.HasActiveAssignmentsForEmployeeAsync(_id);
             if (hasActive)
             {

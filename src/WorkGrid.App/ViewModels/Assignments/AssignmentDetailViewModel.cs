@@ -15,6 +15,7 @@ public sealed class AssignmentDetailViewModel : ViewModelBase
     private readonly IAssignmentRepository _assignmentRepository;
     private readonly IEmployeeRepository _employeeRepository;
     private readonly IAssetRepository _assetRepository;
+    private readonly IAuthorizationService _authorizationService;
 
     private Guid _id;
     private string? _idString;
@@ -51,7 +52,7 @@ public sealed class AssignmentDetailViewModel : ViewModelBase
                 _id = parsedId;
                 IsEditMode = true;
                 Title = "Assignment Details";
-                Task.Run(LoadAssignmentAsync);
+                MainThread.BeginInvokeOnMainThread(async () => await LoadAssignmentAsync());
             }
             else
             {
@@ -61,7 +62,7 @@ public sealed class AssignmentDetailViewModel : ViewModelBase
                 IsActive = false;
                 SelectedEmployee = null;
                 SelectedAsset = null;
-                Task.Run(LoadSelectionSourcesAsync);
+                MainThread.BeginInvokeOnMainThread(async () => await LoadSelectionSourcesAsync());
             }
         }
     }
@@ -152,12 +153,14 @@ public sealed class AssignmentDetailViewModel : ViewModelBase
         IAssignmentService assignmentService,
         IAssignmentRepository assignmentRepository,
         IEmployeeRepository employeeRepository,
-        IAssetRepository assetRepository)
+        IAssetRepository assetRepository,
+        IAuthorizationService authorizationService)
     {
         _assignmentService = assignmentService ?? throw new ArgumentNullException(nameof(assignmentService));
         _assignmentRepository = assignmentRepository ?? throw new ArgumentNullException(nameof(assignmentRepository));
         _employeeRepository = employeeRepository ?? throw new ArgumentNullException(nameof(employeeRepository));
         _assetRepository = assetRepository ?? throw new ArgumentNullException(nameof(assetRepository));
+        _authorizationService = authorizationService ?? throw new ArgumentNullException(nameof(authorizationService));
 
         SaveCommand = new Command(async () => await SaveAsync());
         ReturnCommand = new Command(async () => await ReturnAsync());
@@ -203,7 +206,7 @@ public sealed class AssignmentDetailViewModel : ViewModelBase
         }
     }
 
-    private async Task LoadSelectionSourcesAsync()
+    public async Task LoadSelectionSourcesAsync()
     {
         IsBusy = true;
         ErrorMessage = string.Empty;
@@ -263,6 +266,8 @@ public sealed class AssignmentDetailViewModel : ViewModelBase
 
         try
         {
+            _authorizationService.EnsurePermission(AppPermission.AssignmentCreate);
+
             await _assignmentService.AssignAssetAsync(SelectedEmployee.Id, SelectedAsset.Id);
             await Shell.Current.GoToAsync("..");
         }
@@ -289,6 +294,8 @@ public sealed class AssignmentDetailViewModel : ViewModelBase
 
         try
         {
+            _authorizationService.EnsurePermission(AppPermission.AssignmentReturn);
+
             await _assignmentService.ReturnAssetAsync(_id);
             await LoadAssignmentAsync(); // Reload state
         }
@@ -306,4 +313,3 @@ public sealed class AssignmentDetailViewModel : ViewModelBase
         }
     }
 }
-
