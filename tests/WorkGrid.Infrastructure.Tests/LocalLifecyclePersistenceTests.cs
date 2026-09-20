@@ -32,11 +32,19 @@ public sealed class LocalLifecyclePersistenceTests : IDisposable
         return new WorkGridDbContext(options);
     }
 
+    private static IAuthorizationService CreateAdminAuthorizationService()
+    {
+        var session = new SessionService();
+        session.StartSession(new User(Guid.NewGuid(), "admin", "hash", "Admin", UserRole.Admin));
+        return new AuthorizationService(session);
+    }
+
     [Fact]
     public async Task FullWorkflow_SurvivesSimulatedAppRestart_AndMaintainsDataIntegrity()
     {
         var employeeId = Guid.NewGuid();
         var assetId = Guid.NewGuid();
+        var authz = CreateAdminAuthorizationService();
 
         // ── Session 1: Create Employee and Asset, then Assign ──
         using (var db1 = CreateContext())
@@ -44,7 +52,7 @@ public sealed class LocalLifecyclePersistenceTests : IDisposable
             var empRepo = new EmployeeRepository(db1);
             var astRepo = new AssetRepository(db1);
             var asmRepo = new AssignmentRepository(db1);
-            var service = new AssignmentService(asmRepo, astRepo, empRepo, db1);
+            var service = new AssignmentService(asmRepo, astRepo, empRepo, db1, authz);
 
             await empRepo.AddAsync(new Employee(employeeId, "EMP-200", "David Brown", "david@company.local"));
             await astRepo.AddAsync(new Asset(assetId, "AST-999", "ThinkPad X1", "Laptop", "TP-8877"));
@@ -75,7 +83,7 @@ public sealed class LocalLifecyclePersistenceTests : IDisposable
             var empRepo = new EmployeeRepository(db3);
             var astRepo = new AssetRepository(db3);
             var asmRepo = new AssignmentRepository(db3);
-            var service = new AssignmentService(asmRepo, astRepo, empRepo, db3);
+            var service = new AssignmentService(asmRepo, astRepo, empRepo, db3, authz);
 
             await service.ReturnAssetAsync(activeAssignmentId);
         }
