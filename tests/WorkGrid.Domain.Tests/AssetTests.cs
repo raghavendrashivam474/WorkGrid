@@ -1,16 +1,17 @@
 ﻿using WorkGrid.Domain.Entities;
 using WorkGrid.Domain.Enums;
 using WorkGrid.Domain.Exceptions;
+using Xunit;
 
 namespace WorkGrid.Domain.Tests;
 
-public sealed class AssetTests
+public class AssetTests
 {
     [Fact]
     public void Constructor_WithValidData_CreatesAsset()
     {
         var id = Guid.NewGuid();
-        var asset = new Asset(id, "AST-001", "MacBook Pro", "Laptop", "SN12345", AssetStatus.Available);
+        var asset = new Asset(id, "AST-001", "MacBook Pro", "Laptop", "SN12345");
 
         Assert.Equal(id, asset.Id);
         Assert.Equal("AST-001", asset.AssetTag);
@@ -31,60 +32,79 @@ public sealed class AssetTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public void Constructor_WithInvalidTag_ThrowsDomainValidationException(string? tag)
+    public void Constructor_WithInvalidTag_ThrowsDomainValidationException(string? invalidTag)
     {
         Assert.Throws<DomainValidationException>(() =>
-            new Asset(Guid.NewGuid(), tag!, "MacBook Pro"));
+            new Asset(Guid.NewGuid(), invalidTag!, "MacBook Pro"));
     }
 
     [Fact]
     public void StateTransitions_WorkAsExpected()
     {
         var asset = new Asset(Guid.NewGuid(), "AST-001", "MacBook Pro");
-        Assert.Equal(AssetStatus.Available, asset.Status);
 
+        // Available -> Assigned
         asset.MarkAssigned();
         Assert.Equal(AssetStatus.Assigned, asset.Status);
 
+        // Assigned -> Available
         asset.MarkAvailable();
         Assert.Equal(AssetStatus.Available, asset.Status);
 
+        // Available -> Maintenance
         asset.MarkMaintenance();
         Assert.Equal(AssetStatus.Maintenance, asset.Status);
 
+        // Maintenance -> Available
+        asset.MarkAvailable();
+        Assert.Equal(AssetStatus.Available, asset.Status);
+
+        // Available -> Retired
         asset.Retire();
         Assert.Equal(AssetStatus.Retired, asset.Status);
     }
 
     [Fact]
-    public void MarkAssigned_OnRetiredAsset_ThrowsDomainValidationException()
+    public void MarkAssigned_OnNonAvailableAsset_ThrowsDomainValidationException()
     {
-        var asset = new Asset(Guid.NewGuid(), "AST-001", "MacBook Pro");
-        asset.Retire();
-
+        var asset = new Asset(Guid.NewGuid(), "AST-001", "MacBook Pro", status: AssetStatus.Maintenance);
         Assert.Throws<DomainValidationException>(() => asset.MarkAssigned());
+
+        var retiredAsset = new Asset(Guid.NewGuid(), "AST-002", "Dell XPS", status: AssetStatus.Retired);
+        Assert.Throws<DomainValidationException>(() => retiredAsset.MarkAssigned());
+    }
+
+    [Fact]
+    public void MarkAvailable_OnAvailableOrRetiredAsset_ThrowsDomainValidationException()
+    {
+        var asset = new Asset(Guid.NewGuid(), "AST-001", "MacBook Pro", status: AssetStatus.Available);
         Assert.Throws<DomainValidationException>(() => asset.MarkAvailable());
-        Assert.Throws<DomainValidationException>(() => asset.MarkMaintenance());
+
+        var retiredAsset = new Asset(Guid.NewGuid(), "AST-002", "Dell XPS", status: AssetStatus.Retired);
+        Assert.Throws<DomainValidationException>(() => retiredAsset.MarkAvailable());
     }
 
     [Fact]
     public void UpdateDetails_WithValidData_UpdatesProperties()
     {
-        var asset = new Asset(Guid.NewGuid(), "AST-001", "ThinkPad T14", "Laptop", "TP123");
-        asset.UpdateDetails("ThinkPad T14s", "Laptop Pro", "TP123-Updated");
+        var asset = new Asset(Guid.NewGuid(), "AST-001", "MacBook Pro");
 
-        Assert.Equal("ThinkPad T14s", asset.Name);
-        Assert.Equal("Laptop Pro", asset.AssetType);
-        Assert.Equal("TP123-Updated", asset.SerialNumber);
+        asset.UpdateDetails("MacBook Pro M3", "Hardware", "SN9999");
+
+        Assert.Equal("MacBook Pro M3", asset.Name);
+        Assert.Equal("Hardware", asset.AssetType);
+        Assert.Equal("SN9999", asset.SerialNumber);
     }
 
     [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public void UpdateDetails_WithInvalidName_ThrowsDomainValidationException(string? name)
+    public void UpdateDetails_WithInvalidName_ThrowsDomainValidationException(string? invalidName)
     {
-        var asset = new Asset(Guid.NewGuid(), "AST-001", "ThinkPad T14");
-        Assert.Throws<DomainValidationException>(() => asset.UpdateDetails(name!));
+        var asset = new Asset(Guid.NewGuid(), "AST-001", "MacBook Pro");
+
+        Assert.Throws<DomainValidationException>(() =>
+            asset.UpdateDetails(invalidName!));
     }
 }
