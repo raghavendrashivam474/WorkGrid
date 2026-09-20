@@ -6,18 +6,70 @@
              x:DataType="vm:HomeViewModel"
              Title="{Binding Title}">
 
-    <ScrollView>
-        <VerticalStackLayout Padding="30" Spacing="20" VerticalOptions="Center">
-            <Label Text="WorkGrid Core"
-                   Style="{StaticResource Headline}"
-                   HorizontalOptions="Center" />
-            <Label Text="{Binding WelcomeMessage}"
-                   Style="{StaticResource SubHeadline}"
-                   HorizontalOptions="Center"
-                   HorizontalTextAlignment="Center" />
-            <Label Text="Navigate using the menu to manage Employees or Assets."
-                   HorizontalOptions="Center"
-                   TextColor="Gray" />
-        </VerticalStackLayout>
-    </ScrollView>
+    <RefreshView IsRefreshing="{Binding IsLoading}" Command="{Binding RefreshCommand}">
+        <ScrollView>
+            <VerticalStackLayout Padding="20" Spacing="16">
+                <!-- Welcome Title -->
+                <Label Text="Operational Overview" Style="{StaticResource Headline}" />
+                <Label Text="Live asset allocation and personnel metrics." TextColor="Gray" FontSize="14" />
+
+                <!-- High-level Summary Cards -->
+                <Grid ColumnDefinitions="*, *" ColumnSpacing="12">
+                    <Frame Grid.Column="0" BackgroundColor="{AppThemeBinding Light=#EDE7F6, Dark=#311B92}" CornerRadius="10" Padding="15">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="Employees" FontSize="13" TextColor="#512BD4" FontAttributes="Bold" />
+                            <Label Text="{Binding EmployeeCount}" FontSize="28" FontAttributes="Bold" />
+                        </VerticalStackLayout>
+                    </Frame>
+                    <Frame Grid.Column="1" BackgroundColor="{AppThemeBinding Light=#E0F2F1, Dark=#004D40}" CornerRadius="10" Padding="15">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="Total Assets" FontSize="13" TextColor="#00796B" FontAttributes="Bold" />
+                            <Label Text="{Binding AssetCount}" FontSize="28" FontAttributes="Bold" />
+                        </VerticalStackLayout>
+                    </Frame>
+                </Grid>
+
+                <!-- Active Assignments Highlight -->
+                <Frame BackgroundColor="{AppThemeBinding Light=#E8F5E9, Dark=#1B5E20}" CornerRadius="10" Padding="15">
+                    <Grid ColumnDefinitions="*, Auto">
+                        <VerticalStackLayout Grid.Column="0" Spacing="2">
+                            <Label Text="Active Assignments" FontSize="14" FontAttributes="Bold" TextColor="#2E7D32" />
+                            <Label Text="Assets currently checked out to team members" TextColor="DimGray" FontSize="12" />
+                        </VerticalStackLayout>
+                        <Label Grid.Column="1" Text="{Binding ActiveAssignmentCount}" FontSize="26" FontAttributes="Bold" TextColor="#2E7D32" VerticalOptions="Center" />
+                    </Grid>
+                </Frame>
+
+                <!-- Asset Breakdown -->
+                <Label Text="Asset Status Distribution" FontAttributes="Bold" FontSize="16" Margin="0,10,0,0" />
+
+                <Grid ColumnDefinitions="*, *" RowDefinitions="Auto, Auto" ColumnSpacing="12" RowSpacing="12">
+                    <Frame Grid.Row="0" Grid.Column="0" Padding="12" CornerRadius="8" BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#333333}">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Available" FontSize="12" TextColor="Gray" />
+                            <Label Text="{Binding AvailableAssetCount}" FontSize="20" FontAttributes="Bold" TextColor="#2E7D32" />
+                        </VerticalStackLayout>
+                    </Frame>
+                    <Frame Grid.Row="0" Grid.Column="1" Padding="12" CornerRadius="8" BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#333333}">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Assigned" FontSize="12" TextColor="Gray" />
+                            <Label Text="{Binding AssignedAssetCount}" FontSize="20" FontAttributes="Bold" TextColor="#1565C0" />
+                        </VerticalStackLayout>
+                    </Frame>
+                    <Frame Grid.Row="1" Grid.Column="0" Padding="12" CornerRadius="8" BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#333333}">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Maintenance" FontSize="12" TextColor="Gray" />
+                            <Label Text="{Binding MaintenanceAssetCount}" FontSize="20" FontAttributes="Bold" TextColor="#EF6C00" />
+                        </VerticalStackLayout>
+                    </Frame>
+                    <Frame Grid.Row="1" Grid.Column="1" Padding="12" CornerRadius="8" BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#333333}">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Retired" FontSize="12" TextColor="Gray" />
+                            <Label Text="{Binding RetiredAssetCount}" FontSize="20" FontAttributes="Bold" TextColor="#757575" />
+                        </VerticalStackLayout>
+                    </Frame>
+                </Grid>
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
 </ContentPage>
