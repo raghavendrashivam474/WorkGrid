@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using WorkGrid.Domain.Contracts;
+﻿using WorkGrid.Domain.Contracts;
 using WorkGrid.Domain.Entities;
 using WorkGrid.Domain.Enums;
 using WorkGrid.Domain.Exceptions;
@@ -9,86 +8,103 @@ namespace WorkGrid.Infrastructure.Services;
 
 public sealed class AssignmentService : IAssignmentService
 {
-    private readonly IAssignmentRepository _assignments;
-    private readonly IAssetRepository _assets;
-    private readonly IEmployeeRepository _employees;
-    private readonly WorkGridDbContext _db;
+    private readonly IAssignmentRepository _assignmentRepository;
+    private readonly IAssetRepository _assetRepository;
+    private readonly IEmployeeRepository _employeeRepository;
+    private readonly IAuthorizationService _authorizationService;
+    private readonly WorkGridDbContext? _context;
 
     public AssignmentService(
-        IAssignmentRepository assignments,
-        IAssetRepository assets,
-        IEmployeeRepository employees,
-        WorkGridDbContext db)
+        IAssignmentRepository assignmentRepository,
+        IAssetRepository assetRepository,
+        IEmployeeRepository employeeRepository,
+        IAuthorizationService authorizationService)
     {
-        _assignments = assignments ?? throw new ArgumentNullException(nameof(assignments));
-        _assets = assets ?? throw new ArgumentNullException(nameof(assets));
-        _employees = employees ?? throw new ArgumentNullException(nameof(employees));
-        _db = db ?? throw new ArgumentNullException(nameof(db));
+        _assignmentRepository = assignmentRepository ?? throw new ArgumentNullException(nameof(assignmentRepository));
+        _assetRepository = assetRepository ?? throw new ArgumentNullException(nameof(assetRepository));
+        _employeeRepository = employeeRepository ?? throw new ArgumentNullException(nameof(employeeRepository));
+        _authorizationService = authorizationService ?? throw new ArgumentNullException(nameof(authorizationService));
     }
 
-    public async Task AssignAssetAsync(Guid employeeId, Guid assetId, CancellationToken ct = default)
+    public AssignmentService(
+        IAssignmentRepository assignmentRepository,
+        IAssetRepository assetRepository,
+        IEmployeeRepository employeeRepository,
+        WorkGridDbContext context,
+        IAuthorizationService authorizationService)
+        : this(assignmentRepository, assetRepository, employeeRepository, authorizationService)
     {
-        var employee = await _employees.GetByIdAsync(employeeId, ct);
+        _context = context;
+    }
+
+    public async Task AssignAssetAsync(
+        Guid employeeId,
+        Guid assetId,
+        CancellationToken ct = default)
+    {
+        _authorizationService.EnsurePermission(AppPermission.AssignmentCreate);
+
+        var employee = await _employeeRepository.GetByIdAsync(employeeId, ct);
         if (employee is null)
-            throw new DomainValidationException("Employee not found.");
+        {
+            throw new DomainValidationException($"Employee with ID '{employeeId}' does not exist.");
+        }
 
-        var asset = await _assets.GetByIdAsync(assetId, ct);
+        var asset = await _assetRepository.GetByIdAsync(assetId, ct);
         if (asset is null)
-            throw new DomainValidationException("Asset not found.");
+        {
+            throw new DomainValidationException($"Asset with ID '{assetId}' does not exist.");
+        }
 
-        if (await _assignments.HasActiveAssignmentsForAssetAsync(assetId, ct))
-            throw new DomainValidationException("This asset already has an active assignment.");
+        if (asset.Status != AssetStatus.Available)
+        {
+            throw new DomainValidationException(
+                $"Asset '{asset.AssetTag}' cannot be assigned because its current status is '{asset.Status}'. Only 'Available' assets can be assigned.");
+        }
 
+        var isAlreadyAssigned = await _assignmentRepository.HasActiveAssignmentsForAssetAsync(assetId, ct);
+        if (isAlreadyAssigned)
+        {
+            throw new DomainValidationException(
+                $"Asset '{asset.AssetTag}' is already assigned under an active assignment.");
+        }
+
+        var assignment = new Assignment(Guid.NewGuid(), employeeId, assetId, DateTimeOffset.UtcNow);
         asset.MarkAssigned();
 
-        var assignment = new Assignment(
-            id: Guid.NewGuid(),
-            employeeId: employeeId,
-            assetId: assetId,
-            assignedAt: DateTimeOffset.UtcNow,
-            status: AssignmentStatus.Active);
-
-        using var tx = await _db.Database.BeginTransactionAsync(ct);
-        try
-        {
-            await _assignments.AddAsync(assignment, ct);
-            await _assets.UpdateAsync(asset, ct);
-            await tx.CommitAsync(ct);
-        }
-        catch
-        {
-            await tx.RollbackAsync(ct);
-            throw;
-        }
+        await _assetRepository.UpdateAsync(asset, ct);
+        await _assignmentRepository.AddAsync(assignment, ct);
     }
 
-    public async Task ReturnAssetAsync(Guid assignmentId, CancellationToken ct = default)
+    public async Task ReturnAssetAsync(
+        Guid assignmentId,
+        CancellationToken ct = default)
     {
-        var assignment = await _assignments.GetByIdAsync(assignmentId, ct);
+        _authorizationService.EnsurePermission(AppPermission.AssignmentReturn);
+
+        var assignment = await _assignmentRepository.GetByIdAsync(assignmentId, ct);
         if (assignment is null)
-            throw new DomainValidationException("Assignment not found.");
+        {
+            throw new DomainValidationException($"Assignment with ID '{assignmentId}' does not exist.");
+        }
 
-        if (assignment.Status != AssignmentStatus.Active)
-            throw new DomainValidationException("Only active assignments can be returned.");
+        if (assignment.Status == AssignmentStatus.Returned)
+        {
+            throw new DomainValidationException(
+                $"Assignment '{assignmentId}' is already marked as returned.");
+        }
 
-        var asset = await _assets.GetByIdAsync(assignment.AssetId, ct);
+        var asset = await _assetRepository.GetByIdAsync(assignment.AssetId, ct);
         if (asset is null)
-            throw new DomainValidationException("Asset not found for this assignment.");
+        {
+            throw new DomainValidationException(
+                $"Asset with ID '{assignment.AssetId}' referenced in assignment '{assignmentId}' does not exist.");
+        }
 
         assignment.CompleteReturn(DateTimeOffset.UtcNow);
         asset.MarkAvailable();
 
-        using var tx = await _db.Database.BeginTransactionAsync(ct);
-        try
-        {
-            await _assignments.UpdateAsync(assignment, ct);
-            await _assets.UpdateAsync(asset, ct);
-            await tx.CommitAsync(ct);
-        }
-        catch
-        {
-            await tx.RollbackAsync(ct);
-            throw;
-        }
+        await _assignmentRepository.UpdateAsync(assignment, ct);
+        await _assetRepository.UpdateAsync(asset, ct);
     }
 }
