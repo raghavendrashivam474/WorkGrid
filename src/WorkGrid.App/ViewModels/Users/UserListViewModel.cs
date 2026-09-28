@@ -1,14 +1,14 @@
 ﻿using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using WorkGrid.App.ViewModels.Base;
 using WorkGrid.Domain.Contracts;
 using WorkGrid.Domain.Entities;
 using WorkGrid.Domain.Enums;
+using WorkGrid.Domain.Exceptions;
 
 namespace WorkGrid.App.ViewModels.Users;
 
-public sealed class UserListViewModel : INotifyPropertyChanged
+public sealed class UserListViewModel : ViewModelBase
 {
     private readonly IUserManagementService _userManagementService;
     private readonly IAuthorizationService _authorizationService;
@@ -21,14 +21,20 @@ public sealed class UserListViewModel : INotifyPropertyChanged
     private string _newPassword = string.Empty;
     private UserRole _newRole = UserRole.Viewer;
 
-    public event PropertyChangedEventHandler? PropertyChanged;
-
     public ObservableCollection<User> Users { get; } = new();
 
     public bool IsBusy
     {
         get => _isBusy;
-        set => SetField(ref _isBusy, value);
+        set
+        {
+            if (SetProperty(ref _isBusy, value))
+            {
+                ((Command)LoadUsersCommand).ChangeCanExecute();
+                ((Command)CreateUserCommand).ChangeCanExecute();
+                ((Command)ToggleUserStatusCommand).ChangeCanExecute();
+            }
+        }
     }
 
     public string ErrorMessage
@@ -36,7 +42,7 @@ public sealed class UserListViewModel : INotifyPropertyChanged
         get => _errorMessage;
         set
         {
-            if (SetField(ref _errorMessage, value))
+            if (SetProperty(ref _errorMessage, value))
             {
                 OnPropertyChanged(nameof(HasError));
             }
@@ -48,25 +54,25 @@ public sealed class UserListViewModel : INotifyPropertyChanged
     public string NewUsername
     {
         get => _newUsername;
-        set => SetField(ref _newUsername, value);
+        set => SetProperty(ref _newUsername, value);
     }
 
     public string NewDisplayName
     {
         get => _newDisplayName;
-        set => SetField(ref _newDisplayName, value);
+        set => SetProperty(ref _newDisplayName, value);
     }
 
     public string NewPassword
     {
         get => _newPassword;
-        set => SetField(ref _newPassword, value);
+        set => SetProperty(ref _newPassword, value);
     }
 
     public UserRole NewRole
     {
         get => _newRole;
-        set => SetField(ref _newRole, value);
+        set => SetProperty(ref _newRole, value);
     }
 
     public IReadOnlyList<UserRole> AvailableRoles { get; } = Enum.GetValues<UserRole>();
@@ -112,9 +118,13 @@ public sealed class UserListViewModel : INotifyPropertyChanged
                 Users.Add(user);
             }
         }
+        catch (AuthorizationException authEx)
+        {
+            ErrorMessage = authEx.Message;
+        }
         catch (Exception ex)
         {
-            ErrorMessage = ex.Message;
+            ErrorMessage = $"Failed to load users: {ex.Message}";
         }
         finally
         {
@@ -124,14 +134,34 @@ public sealed class UserListViewModel : INotifyPropertyChanged
 
     private async Task CreateUserAsync()
     {
-        if (IsBusy) return;
+        if (IsBusy || !CanManageUsers) return;
+
+        ErrorMessage = string.Empty;
+
+        // G6: Proactive client-side validation
+        if (string.IsNullOrWhiteSpace(NewUsername))
+        {
+            ErrorMessage = "Username is required.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(NewDisplayName))
+        {
+            ErrorMessage = "Display Name is required.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(NewPassword) || NewPassword.Length < 6)
+        {
+            ErrorMessage = "Password must be at least 6 characters long.";
+            return;
+        }
 
         try
         {
             IsBusy = true;
-            ErrorMessage = string.Empty;
 
-            await _userManagementService.CreateUserAsync(NewUsername, NewPassword, NewDisplayName, NewRole);
+            await _userManagementService.CreateUserAsync(NewUsername.Trim(), NewPassword, NewDisplayName.Trim(), NewRole);
 
             NewUsername = string.Empty;
             NewDisplayName = string.Empty;
@@ -140,9 +170,17 @@ public sealed class UserListViewModel : INotifyPropertyChanged
 
             await LoadUsersAsync();
         }
+        catch (DomainValidationException dex)
+        {
+            ErrorMessage = dex.Message;
+        }
+        catch (AuthorizationException authEx)
+        {
+            ErrorMessage = authEx.Message;
+        }
         catch (Exception ex)
         {
-            ErrorMessage = ex.Message;
+            ErrorMessage = $"Failed to create user: {ex.Message}";
         }
         finally
         {
@@ -152,7 +190,19 @@ public sealed class UserListViewModel : INotifyPropertyChanged
 
     private async Task ToggleUserStatusAsync(User? user)
     {
-        if (user is null || IsBusy) return;
+        if (user is null || IsBusy || !CanManageUsers) return;
+
+        // Guard: Confirmation dialog for destructive/deactivation action
+        if (user.IsActive && Application.Current?.MainPage != null)
+        {
+            var confirm = await Application.Current.MainPage.DisplayAlert(
+                "Confirm Deactivation",
+                $"Are you sure you want to deactivate user '{user.DisplayName}' (@{user.Username})?",
+                "Yes, Deactivate",
+                "Cancel");
+
+            if (!confirm) return;
+        }
 
         try
         {
@@ -162,26 +212,21 @@ public sealed class UserListViewModel : INotifyPropertyChanged
             await _userManagementService.SetUserActiveStateAsync(user.Id, !user.IsActive);
             await LoadUsersAsync();
         }
+        catch (DomainValidationException dex)
+        {
+            ErrorMessage = dex.Message;
+        }
+        catch (AuthorizationException authEx)
+        {
+            ErrorMessage = authEx.Message;
+        }
         catch (Exception ex)
         {
-            ErrorMessage = ex.Message;
+            ErrorMessage = $"Failed to update user status: {ex.Message}";
         }
         finally
         {
             IsBusy = false;
         }
-    }
-
-    private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
-    {
-        if (EqualityComparer<T>.Default.Equals(field, value)) return false;
-        field = value;
-        OnPropertyChanged(propertyName);
-        return true;
-    }
-
-    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }
