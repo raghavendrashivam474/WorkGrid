@@ -101,10 +101,19 @@ public sealed class AssetDetailViewModel : ViewModelBase
         get => _status;
         set
         {
-            SetProperty(ref _status, value);
-            IsRetired = value == AssetStatus.Retired;
+            if (SetProperty(ref _status, value))
+            {
+                IsRetired = value == AssetStatus.Retired;
+                OnPropertyChanged(nameof(CanMarkAvailable));
+                OnPropertyChanged(nameof(CanMarkMaintenance));
+                OnPropertyChanged(nameof(CanRetire));
+            }
         }
     }
+
+    public bool CanMarkAvailable => IsEditMode && (Status == AssetStatus.Assigned || Status == AssetStatus.Maintenance);
+    public bool CanMarkMaintenance => IsEditMode && Status == AssetStatus.Available;
+    public bool CanRetire => IsEditMode && Status != AssetStatus.Assigned && Status != AssetStatus.Retired;
 
     public string ErrorMessage
     {
@@ -115,13 +124,32 @@ public sealed class AssetDetailViewModel : ViewModelBase
     public bool IsBusy
     {
         get => _isBusy;
-        set => SetProperty(ref _isBusy, value);
+        set
+        {
+            if (SetProperty(ref _isBusy, value))
+            {
+                ((Command)SaveCommand).ChangeCanExecute();
+                ((Command)DeleteCommand).ChangeCanExecute();
+                ((Command)CancelCommand).ChangeCanExecute();
+                ((Command)MarkAvailableCommand).ChangeCanExecute();
+                ((Command)MarkMaintenanceCommand).ChangeCanExecute();
+                ((Command)RetireCommand).ChangeCanExecute();
+            }
+        }
     }
 
     public bool IsEditMode
     {
         get => _isEditMode;
-        set => SetProperty(ref _isEditMode, value);
+        set
+        {
+            if (SetProperty(ref _isEditMode, value))
+            {
+                OnPropertyChanged(nameof(CanMarkAvailable));
+                OnPropertyChanged(nameof(CanMarkMaintenance));
+                OnPropertyChanged(nameof(CanRetire));
+            }
+        }
     }
 
     public bool CanDelete
@@ -178,13 +206,13 @@ public sealed class AssetDetailViewModel : ViewModelBase
         _employeeRepository = employeeRepository ?? throw new ArgumentNullException(nameof(employeeRepository));
         _authorizationService = authorizationService ?? throw new ArgumentNullException(nameof(authorizationService));
 
-        SaveCommand = new Command(async () => await SaveAsync());
-        DeleteCommand = new Command(async () => await DeleteAsync());
-        CancelCommand = new Command(async () => await Shell.Current.GoToAsync(".."));
+        SaveCommand = new Command(async () => await SaveAsync(), () => !IsBusy);
+        DeleteCommand = new Command(async () => await DeleteAsync(), () => !IsBusy && CanDelete);
+        CancelCommand = new Command(async () => await CancelAsync(), () => !IsBusy);
 
-        MarkAvailableCommand = new Command(async () => await ChangeStatusAsync(a => a.MarkAvailable(), AppPermission.AssetMaintenance));
-        MarkMaintenanceCommand = new Command(async () => await ChangeStatusAsync(a => a.MarkMaintenance(), AppPermission.AssetMaintenance));
-        RetireCommand = new Command(async () => await ChangeStatusAsync(a => a.Retire(), AppPermission.AssetRetire));
+        MarkAvailableCommand = new Command(async () => await ChangeStatusAsync(a => a.MarkAvailable(), AppPermission.AssetMaintenance), () => !IsBusy && CanMarkAvailable);
+        MarkMaintenanceCommand = new Command(async () => await ChangeStatusAsync(a => a.MarkMaintenance(), AppPermission.AssetMaintenance), () => !IsBusy && CanMarkMaintenance);
+        RetireCommand = new Command(async () => await ChangeStatusAsync(a => a.Retire(), AppPermission.AssetRetire), () => !IsBusy && CanRetire);
     }
 
     public async Task LoadAssetAsync()
@@ -266,13 +294,18 @@ public sealed class AssetDetailViewModel : ViewModelBase
 
         ErrorMessage = string.Empty;
 
-        if (string.IsNullOrWhiteSpace(AssetTag) && !IsEditMode)
+        var tagTrimmed = AssetTag?.Trim().ToUpperInvariant() ?? string.Empty;
+        var nameTrimmed = Name?.Trim() ?? string.Empty;
+        var typeTrimmed = string.IsNullOrWhiteSpace(AssetType) ? null : AssetType.Trim();
+        var serialTrimmed = string.IsNullOrWhiteSpace(SerialNumber) ? null : SerialNumber.Trim();
+
+        if (string.IsNullOrWhiteSpace(tagTrimmed) && !IsEditMode)
         {
             ErrorMessage = "Asset tag is required.";
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(Name))
+        if (string.IsNullOrWhiteSpace(nameTrimmed))
         {
             ErrorMessage = "Asset name is required.";
             return;
@@ -293,26 +326,26 @@ public sealed class AssetDetailViewModel : ViewModelBase
                     return;
                 }
 
-                existing.UpdateDetails(Name, AssetType, SerialNumber);
+                existing.UpdateDetails(nameTrimmed, typeTrimmed, serialTrimmed);
                 await _assetRepository.UpdateAsync(existing);
             }
             else
             {
                 _authorizationService.EnsurePermission(AppPermission.AssetCreate);
 
-                var exists = await _assetRepository.ExistsByTagAsync(AssetTag);
+                var exists = await _assetRepository.ExistsByTagAsync(tagTrimmed);
                 if (exists)
                 {
-                    ErrorMessage = $"Asset tag '{AssetTag.Trim().ToUpperInvariant()}' already exists.";
+                    ErrorMessage = $"Asset tag '{tagTrimmed}' already exists.";
                     return;
                 }
 
                 var newAsset = new Asset(
                     Guid.NewGuid(),
-                    AssetTag,
-                    Name,
-                    AssetType,
-                    SerialNumber,
+                    tagTrimmed,
+                    nameTrimmed,
+                    typeTrimmed,
+                    serialTrimmed,
                     Status);
 
                 await _assetRepository.AddAsync(newAsset);
@@ -375,6 +408,19 @@ public sealed class AssetDetailViewModel : ViewModelBase
         if (IsBusy || !IsEditMode || _id == Guid.Empty) return;
 
         ErrorMessage = string.Empty;
+
+        // Prompt user confirmation on Shell Page
+        if (Application.Current?.MainPage != null)
+        {
+            var confirm = await Application.Current.MainPage.DisplayAlert(
+                "Delete Asset",
+                $"Are you sure you want to permanently delete asset '{AssetTag} - {Name}'?",
+                "Delete",
+                "Cancel");
+
+            if (!confirm) return;
+        }
+
         IsBusy = true;
 
         try
@@ -404,5 +450,11 @@ public sealed class AssetDetailViewModel : ViewModelBase
         {
             IsBusy = false;
         }
+    }
+
+    private async Task CancelAsync()
+    {
+        if (IsBusy) return;
+        await Shell.Current.GoToAsync("..");
     }
 }

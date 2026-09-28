@@ -25,39 +25,49 @@
                    Padding="12"
                    CornerRadius="8"
                    IsVisible="{Binding IsEditMode}">
-                <VerticalStackLayout Spacing="8">
-                    <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
-                        <Label Text="Current Status:" FontAttributes="Bold" />
-                        <Label Text="{Binding Status}" TextColor="#512BD4" FontAttributes="Bold" />
-                    </HorizontalStackLayout>
+                  <VerticalStackLayout Spacing="8">
+                      <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                          <Label Text="Current Status:" FontAttributes="Bold" />
+                          <Label Text="{Binding Status}" TextColor="#512BD4" FontAttributes="Bold" />
+                      </HorizontalStackLayout>
 
-                    <!-- Transition buttons (disabled if retired) -->
-                    <HorizontalStackLayout Spacing="8" IsVisible="{Binding IsRetired, Converter={StaticResource InverseBoolConverter}}">
-                        <Button Text="Available"
-                                Command="{Binding MarkAvailableCommand}"
-                                FontSize="12"
-                                HeightRequest="36"
-                                Padding="10,0" />
-                        <Button Text="Maintenance"
-                                Command="{Binding MarkMaintenanceCommand}"
-                                FontSize="12"
-                                HeightRequest="36"
-                                Padding="10,0"
-                                BackgroundColor="#FF9800" />
-                        <Button Text="Retire"
-                                Command="{Binding RetireCommand}"
-                                FontSize="12"
-                                HeightRequest="36"
-                                Padding="10,0"
-                                BackgroundColor="#757575" />
-                    </HorizontalStackLayout>
+                      <!-- Transition buttons governed by Lifecycle State -->
+                      <HorizontalStackLayout Spacing="8" IsVisible="{Binding IsRetired, Converter={StaticResource InverseBoolConverter}}">
+                          <Button Text="Mark Available"
+                                  Command="{Binding MarkAvailableCommand}"
+                                  IsVisible="{Binding CanMarkAvailable}"
+                                  IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}"
+                                  FontSize="12"
+                                  HeightRequest="36"
+                                  Padding="10,0"
+                                  BackgroundColor="#2E7D32"
+                                  TextColor="White" />
+                          <Button Text="Place in Maintenance"
+                                  Command="{Binding MarkMaintenanceCommand}"
+                                  IsVisible="{Binding CanMarkMaintenance}"
+                                  IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}"
+                                  FontSize="12"
+                                  HeightRequest="36"
+                                  Padding="10,0"
+                                  BackgroundColor="#EF6C00"
+                                  TextColor="White" />
+                          <Button Text="Retire Asset"
+                                  Command="{Binding RetireCommand}"
+                                  IsVisible="{Binding CanRetire}"
+                                  IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}"
+                                  FontSize="12"
+                                  HeightRequest="36"
+                                  Padding="10,0"
+                                  BackgroundColor="#757575"
+                                  TextColor="White" />
+                      </HorizontalStackLayout>
 
-                    <Label Text="This asset is retired (terminal state)."
-                           TextColor="Gray"
-                           FontSize="12"
-                           FontAttributes="Italic"
-                           IsVisible="{Binding IsRetired}" />
-                </VerticalStackLayout>
+                      <Label Text="This asset is retired (terminal state)."
+                             TextColor="Gray"
+                             FontSize="12"
+                             FontAttributes="Italic"
+                             IsVisible="{Binding IsRetired}" />
+                  </VerticalStackLayout>
             </Frame>
 
             <!-- Current Holder Card (Edit Mode Only) -->
@@ -81,6 +91,7 @@
                 <Label Text="Asset Tag *" FontAttributes="Bold" FontSize="13" />
                 <Entry Text="{Binding AssetTag}"
                        Placeholder="e.g. AST-001"
+                       ClearButtonVisibility="WhileEditing"
                        IsEnabled="{Binding IsEditMode, Converter={StaticResource InverseBoolConverter}}" />
             </VerticalStackLayout>
 
@@ -88,21 +99,27 @@
             <VerticalStackLayout Spacing="4">
                 <Label Text="Asset Name *" FontAttributes="Bold" FontSize="13" />
                 <Entry Text="{Binding Name}"
-                       Placeholder="e.g. Dell Latitude 5520" />
+                       Placeholder="e.g. Dell Latitude 5520"
+                       ClearButtonVisibility="WhileEditing"
+                       IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}" />
             </VerticalStackLayout>
 
             <!-- Asset Type -->
             <VerticalStackLayout Spacing="4">
                 <Label Text="Asset Type" FontAttributes="Bold" FontSize="13" />
                 <Entry Text="{Binding AssetType}"
-                       Placeholder="e.g. Laptop, Monitor, Phone" />
+                       Placeholder="e.g. Laptop, Monitor, Phone"
+                       ClearButtonVisibility="WhileEditing"
+                       IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}" />
             </VerticalStackLayout>
 
             <!-- Serial Number -->
             <VerticalStackLayout Spacing="4">
                 <Label Text="Serial Number" FontAttributes="Bold" FontSize="13" />
                 <Entry Text="{Binding SerialNumber}"
-                       Placeholder="e.g. SN-98218392" />
+                       Placeholder="e.g. SN-98218392"
+                       ClearButtonVisibility="WhileEditing"
+                       IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}" />
             </VerticalStackLayout>
 
             <!-- ── ASSIGNMENT HISTORY (Edit Mode Only) ── -->
@@ -117,7 +134,7 @@
                             <Frame Margin="0,2" Padding="10" CornerRadius="6" BackgroundColor="{AppThemeBinding Light=#FAFAFA, Dark=#2A2A2A}">
                                 <Grid ColumnDefinitions="*, Auto">
                                     <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                        <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="14" />
+                                        <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="14" LineBreakMode="TailTruncation" />
                                         <Label Text="{Binding AssignedAt, StringFormat='Assigned: {0:d}'}" TextColor="DimGray" FontSize="11" />
                                         <Label Text="{Binding ReturnedAt, StringFormat='Returned: {0:d}'}" TextColor="DimGray" FontSize="11" IsVisible="{Binding ReturnedAt, Converter={StaticResource IsNotNullOrEmptyConverter}}" />
                                     </VerticalStackLayout>
@@ -134,11 +151,18 @@
                 <Button Grid.Column="0"
                         Text="Save"
                         Command="{Binding SaveCommand}"
-                        IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}" />
+                        IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}"
+                        BackgroundColor="#2563EB"
+                        TextColor="White"
+                        FontAttributes="Bold"
+                        CornerRadius="8"
+                        HeightRequest="46" />
                 <Button Grid.Column="1"
                         Text="Cancel"
                         Command="{Binding CancelCommand}"
-                        Style="{StaticResource SecondaryButtonStyle}" />
+                        IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        HeightRequest="46" />
             </Grid>
 
             <!-- Delete Button (Only visible in edit mode) -->
@@ -146,6 +170,9 @@
                     Command="{Binding DeleteCommand}"
                     BackgroundColor="#D32F2F"
                     TextColor="White"
+                    FontAttributes="Bold"
+                    CornerRadius="8"
+                    HeightRequest="46"
                     Margin="0,10,0,0"
                     IsVisible="{Binding CanDelete}"
                     IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}" />
