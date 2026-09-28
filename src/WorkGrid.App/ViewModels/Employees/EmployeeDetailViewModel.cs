@@ -96,7 +96,15 @@ public sealed class EmployeeDetailViewModel : ViewModelBase
     public bool IsBusy
     {
         get => _isBusy;
-        set => SetProperty(ref _isBusy, value);
+        set
+        {
+            if (SetProperty(ref _isBusy, value))
+            {
+                ((Command)SaveCommand).ChangeCanExecute();
+                ((Command)DeleteCommand).ChangeCanExecute();
+                ((Command)CancelCommand).ChangeCanExecute();
+            }
+        }
     }
 
     public bool IsEditMode
@@ -126,9 +134,9 @@ public sealed class EmployeeDetailViewModel : ViewModelBase
         _assetRepository = assetRepository ?? throw new ArgumentNullException(nameof(assetRepository));
         _authorizationService = authorizationService ?? throw new ArgumentNullException(nameof(authorizationService));
 
-        SaveCommand = new Command(async () => await SaveAsync());
-        DeleteCommand = new Command(async () => await DeleteAsync());
-        CancelCommand = new Command(async () => await Shell.Current.GoToAsync(".."));
+        SaveCommand = new Command(async () => await SaveAsync(), () => !IsBusy);
+        DeleteCommand = new Command(async () => await DeleteAsync(), () => !IsBusy && CanDelete);
+        CancelCommand = new Command(async () => await CancelAsync(), () => !IsBusy);
     }
 
     public async Task LoadEmployeeAsync()
@@ -200,19 +208,24 @@ public sealed class EmployeeDetailViewModel : ViewModelBase
 
         ErrorMessage = string.Empty;
 
-        if (string.IsNullOrWhiteSpace(EmployeeCode) && !IsEditMode)
+        var codeTrimmed = EmployeeCode?.Trim() ?? string.Empty;
+        var nameTrimmed = Name?.Trim() ?? string.Empty;
+        var emailTrimmed = Email?.Trim() ?? string.Empty;
+        var deptTrimmed = string.IsNullOrWhiteSpace(Department) ? null : Department.Trim();
+
+        if (string.IsNullOrWhiteSpace(codeTrimmed) && !IsEditMode)
         {
             ErrorMessage = "Employee code is required.";
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(Name))
+        if (string.IsNullOrWhiteSpace(nameTrimmed))
         {
             ErrorMessage = "Employee name is required.";
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(Email) || !Email.Contains('@', StringComparison.Ordinal))
+        if (string.IsNullOrWhiteSpace(emailTrimmed) || !emailTrimmed.Contains('@', StringComparison.Ordinal))
         {
             ErrorMessage = "A valid email address is required.";
             return;
@@ -233,26 +246,26 @@ public sealed class EmployeeDetailViewModel : ViewModelBase
                     return;
                 }
 
-                existing.UpdateDetails(Name, Email, Department);
+                existing.UpdateDetails(nameTrimmed, emailTrimmed, deptTrimmed);
                 await _employeeRepository.UpdateAsync(existing);
             }
             else
             {
                 _authorizationService.EnsurePermission(AppPermission.EmployeeCreate);
 
-                var exists = await _employeeRepository.ExistsByCodeAsync(EmployeeCode);
+                var exists = await _employeeRepository.ExistsByCodeAsync(codeTrimmed);
                 if (exists)
                 {
-                    ErrorMessage = $"Employee code '{EmployeeCode.Trim()}' is already in use.";
+                    ErrorMessage = $"Employee code '{codeTrimmed}' is already in use.";
                     return;
                 }
 
                 var newEmployee = new Employee(
                     Guid.NewGuid(),
-                    EmployeeCode,
-                    Name,
-                    Email,
-                    Department);
+                    codeTrimmed,
+                    nameTrimmed,
+                    emailTrimmed,
+                    deptTrimmed);
 
                 await _employeeRepository.AddAsync(newEmployee);
             }
@@ -278,6 +291,19 @@ public sealed class EmployeeDetailViewModel : ViewModelBase
         if (IsBusy || !IsEditMode || _id == Guid.Empty) return;
 
         ErrorMessage = string.Empty;
+
+        // Prompt user confirmation on Shell Page
+        if (Application.Current?.MainPage != null)
+        {
+            var confirm = await Application.Current.MainPage.DisplayAlert(
+                "Delete Employee",
+                $"Are you sure you want to permanently delete employee '{Name}'?",
+                "Delete",
+                "Cancel");
+
+            if (!confirm) return;
+        }
+
         IsBusy = true;
 
         try
@@ -307,5 +333,11 @@ public sealed class EmployeeDetailViewModel : ViewModelBase
         {
             IsBusy = false;
         }
+    }
+
+    private async Task CancelAsync()
+    {
+        if (IsBusy) return;
+        await Shell.Current.GoToAsync("..");
     }
 }

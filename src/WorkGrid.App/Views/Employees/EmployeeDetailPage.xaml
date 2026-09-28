@@ -25,6 +25,7 @@
                 <Label Text="Employee Code *" FontAttributes="Bold" FontSize="13" />
                 <Entry Text="{Binding EmployeeCode}"
                        Placeholder="e.g. EMP001"
+                       ClearButtonVisibility="WhileEditing"
                        IsEnabled="{Binding IsEditMode, Converter={StaticResource InverseBoolConverter}}" />
             </VerticalStackLayout>
 
@@ -32,7 +33,9 @@
             <VerticalStackLayout Spacing="4">
                 <Label Text="Full Name *" FontAttributes="Bold" FontSize="13" />
                 <Entry Text="{Binding Name}"
-                       Placeholder="e.g. Jane Doe" />
+                       Placeholder="e.g. Jane Doe"
+                       ClearButtonVisibility="WhileEditing"
+                       IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}" />
             </VerticalStackLayout>
 
             <!-- Email -->
@@ -40,14 +43,18 @@
                 <Label Text="Email Address *" FontAttributes="Bold" FontSize="13" />
                 <Entry Text="{Binding Email}"
                        Keyboard="Email"
-                       Placeholder="e.g. jane.doe@company.com" />
+                       Placeholder="e.g. jane.doe@company.com"
+                       ClearButtonVisibility="WhileEditing"
+                       IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}" />
             </VerticalStackLayout>
 
             <!-- Department -->
             <VerticalStackLayout Spacing="4">
                 <Label Text="Department" FontAttributes="Bold" FontSize="13" />
                 <Entry Text="{Binding Department}"
-                       Placeholder="e.g. Engineering" />
+                       Placeholder="e.g. Engineering"
+                       ClearButtonVisibility="WhileEditing"
+                       IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}" />
             </VerticalStackLayout>
 
             <!-- ── CURRENTLY ASSIGNED ASSETS (Edit Mode Only) ── -->
@@ -62,7 +69,7 @@
                             <Frame Margin="0,2" Padding="10" CornerRadius="6" BackgroundColor="{AppThemeBinding Light=#E8F5E9, Dark=#1B5E20}">
                                 <Grid ColumnDefinitions="*, Auto">
                                     <VerticalStackLayout Grid.Column="0">
-                                        <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="14" />
+                                        <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="14" LineBreakMode="TailTruncation" />
                                         <Label Text="{Binding AssignedAt, StringFormat='Assigned: {0:d}'}" TextColor="Gray" FontSize="12" />
                                     </VerticalStackLayout>
                                     <Label Grid.Column="1" Text="Active" FontAttributes="Bold" TextColor="#2E7D32" VerticalOptions="Center" />
@@ -84,7 +91,7 @@
                         <DataTemplate x:DataType="common:AssignmentHistoryItem">
                             <Frame Margin="0,2" Padding="10" CornerRadius="6" BackgroundColor="{AppThemeBinding Light=#FAFAFA, Dark=#2A2A2A}">
                                 <VerticalStackLayout Spacing="2">
-                                    <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="13" />
+                                    <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="13" LineBreakMode="TailTruncation" />
                                     <Label Text="{Binding AssignedAt, StringFormat='Period: {0:d} - '}" TextColor="DimGray" FontSize="11" />
                                     <Label Text="{Binding ReturnedAt, StringFormat='Returned: {0:d}'}" TextColor="DimGray" FontSize="11" />
                                 </VerticalStackLayout>
@@ -99,11 +106,18 @@
                 <Button Grid.Column="0"
                         Text="Save"
                         Command="{Binding SaveCommand}"
-                        IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}" />
+                        IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}"
+                        BackgroundColor="#2563EB"
+                        TextColor="White"
+                        FontAttributes="Bold"
+                        CornerRadius="8"
+                        HeightRequest="46" />
                 <Button Grid.Column="1"
                         Text="Cancel"
                         Command="{Binding CancelCommand}"
-                        Style="{StaticResource SecondaryButtonStyle}" />
+                        IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        HeightRequest="46" />
             </Grid>
 
             <!-- Delete Button (Only visible in edit mode) -->
@@ -111,6 +125,9 @@
                     Command="{Binding DeleteCommand}"
                     BackgroundColor="#D32F2F"
                     TextColor="White"
+                    FontAttributes="Bold"
+                    CornerRadius="8"
+                    HeightRequest="46"
                     Margin="0,10,0,0"
                     IsVisible="{Binding CanDelete}"
                     IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}" />
