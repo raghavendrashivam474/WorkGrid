@@ -61,7 +61,14 @@ public sealed class LoginViewModel : INotifyPropertyChanged
     public bool IsBusy
     {
         get => _isBusy;
-        set => SetField(ref _isBusy, value);
+        set
+        {
+            if (SetField(ref _isBusy, value))
+            {
+                ((Command)LoginCommand).ChangeCanExecute();
+                ((Command)SetupAdminCommand).ChangeCanExecute();
+            }
+        }
     }
 
     public bool IsFirstRunSetup
@@ -115,25 +122,37 @@ public sealed class LoginViewModel : INotifyPropertyChanged
     {
         if (IsBusy) return;
 
+        var userTrimmed = Username?.Trim() ?? string.Empty;
+        var pass = Password ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(userTrimmed) || string.IsNullOrWhiteSpace(pass))
+        {
+            ErrorMessage = "Please enter both username and password.";
+            return;
+        }
+
         try
         {
             IsBusy = true;
             ErrorMessage = string.Empty;
 
-            var result = await _authService.LoginAsync(Username, Password);
+            var result = await _authService.LoginAsync(userTrimmed, pass);
             if (!result.Success)
             {
-                ErrorMessage = result.ErrorMessage ?? "Login failed.";
+                ErrorMessage = result.ErrorMessage ?? "Invalid username or password.";
+                Password = string.Empty;
                 return;
             }
 
             // Clear inputs for security
             Password = string.Empty;
+            Username = string.Empty;
             await Shell.Current.GoToAsync("//home");
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Authentication error: {ex.Message}";
+            Password = string.Empty;
         }
         finally
         {
@@ -145,19 +164,24 @@ public sealed class LoginViewModel : INotifyPropertyChanged
     {
         if (IsBusy) return;
 
-        if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(DisplayName))
+        var userTrimmed = Username?.Trim() ?? string.Empty;
+        var displayTrimmed = DisplayName?.Trim() ?? string.Empty;
+        var pass = Password ?? string.Empty;
+        var confirmPass = ConfirmPassword ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(userTrimmed) || string.IsNullOrWhiteSpace(displayTrimmed))
         {
             ErrorMessage = "Username and display name are required.";
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(Password) || Password.Length < 6)
+        if (string.IsNullOrWhiteSpace(pass) || pass.Length < 6)
         {
             ErrorMessage = "Password must be at least 6 characters long.";
             return;
         }
 
-        if (Password != ConfirmPassword)
+        if (pass != confirmPass)
         {
             ErrorMessage = "Passwords do not match.";
             return;
@@ -168,7 +192,7 @@ public sealed class LoginViewModel : INotifyPropertyChanged
             IsBusy = true;
             ErrorMessage = string.Empty;
 
-            var result = await _authService.RegisterInitialAdminAsync(Username, Password, DisplayName);
+            var result = await _authService.RegisterInitialAdminAsync(userTrimmed, pass, displayTrimmed);
             if (!result.Success)
             {
                 ErrorMessage = result.ErrorMessage ?? "Setup failed.";
@@ -178,6 +202,8 @@ public sealed class LoginViewModel : INotifyPropertyChanged
             // Clear inputs
             Password = string.Empty;
             ConfirmPassword = string.Empty;
+            DisplayName = string.Empty;
+            Username = string.Empty;
             await Shell.Current.GoToAsync("//home");
         }
         catch (Exception ex)
