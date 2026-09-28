@@ -15,6 +15,9 @@ public sealed class HomeViewModel : ViewModelBase
 
     private string _title = "WorkGrid Dashboard";
     private bool _isLoading;
+    private bool _isNavigating;
+    private string _errorMessage = string.Empty;
+
     private int _employeeCount;
     private int _assetCount;
     private int _availableAssetCount;
@@ -34,8 +37,29 @@ public sealed class HomeViewModel : ViewModelBase
     public bool IsLoading
     {
         get => _isLoading;
-        set => SetProperty(ref _isLoading, value);
+        set
+        {
+            if (SetProperty(ref _isLoading, value))
+            {
+                ((Command)RefreshCommand).ChangeCanExecute();
+                ((Command)LogoutCommand).ChangeCanExecute();
+            }
+        }
     }
+
+    public string ErrorMessage
+    {
+        get => _errorMessage;
+        set
+        {
+            if (SetProperty(ref _errorMessage, value))
+            {
+                OnPropertyChanged(nameof(HasError));
+            }
+        }
+    }
+
+    public bool HasError => !string.IsNullOrWhiteSpace(_errorMessage);
 
     public int EmployeeCount
     {
@@ -107,8 +131,8 @@ public sealed class HomeViewModel : ViewModelBase
         _authenticationService = authenticationService ?? throw new ArgumentNullException(nameof(authenticationService));
         _sessionService = sessionService ?? throw new ArgumentNullException(nameof(sessionService));
 
-        RefreshCommand = new Command(async () => await LoadDashboardAsync());
-        LogoutCommand = new Command(async () => await ExecuteLogoutAsync());
+        RefreshCommand = new Command(async () => await LoadDashboardAsync(), () => !IsLoading);
+        LogoutCommand = new Command(async () => await ExecuteLogoutAsync(), () => !IsLoading && !_isNavigating);
     }
 
     public async Task LoadDashboardAsync()
@@ -116,6 +140,7 @@ public sealed class HomeViewModel : ViewModelBase
         if (IsLoading) return;
 
         IsLoading = true;
+        ErrorMessage = string.Empty;
 
         try
         {
@@ -144,9 +169,9 @@ public sealed class HomeViewModel : ViewModelBase
 
             ActiveAssignmentCount = assignments.Count(a => a.Status == AssignmentStatus.Active);
         }
-        catch
+        catch (Exception ex)
         {
-            // Silently complete gracefully
+            ErrorMessage = $"Failed to update metrics: {ex.Message}";
         }
         finally
         {
@@ -156,7 +181,20 @@ public sealed class HomeViewModel : ViewModelBase
 
     private async Task ExecuteLogoutAsync()
     {
-        _authenticationService.Logout();
-        await Shell.Current.GoToAsync("//login");
+        if (_isNavigating || IsLoading) return;
+
+        try
+        {
+            _isNavigating = true;
+            ((Command)LogoutCommand).ChangeCanExecute();
+
+            _authenticationService.Logout();
+            await Shell.Current.GoToAsync("//login");
+        }
+        finally
+        {
+            _isNavigating = false;
+            ((Command)LogoutCommand).ChangeCanExecute();
+        }
     }
 }
