@@ -16,10 +16,13 @@
                Margin="16,8,16,4"
                Padding="10"
                IsVisible="{Binding HasError}">
-            <Label Text="{Binding ErrorMessage}" TextColor="#B91C1C" FontSize="13" />
+            <Label Text="{Binding ErrorMessage}"
+                   TextColor="#B91C1C"
+                   FontSize="13"
+                   LineBreakMode="WordWrap" />
         </Frame>
 
-        <!-- New User Form -->
+        <!-- New User Form (Visible only for authorized roles) -->
         <Frame Grid.Row="1"
                Margin="16,8"
                Padding="14"
@@ -29,18 +32,30 @@
             <VerticalStackLayout Spacing="10">
                 <Label Text="Add New User" FontSize="16" FontAttributes="Bold" />
                 <Grid ColumnDefinitions="*, *, *" ColumnSpacing="8" RowDefinitions="Auto, Auto" RowSpacing="8">
-                    <Entry Grid.Row="0" Grid.Column="0" Placeholder="Username" Text="{Binding NewUsername}" />
-                    <Entry Grid.Row="0" Grid.Column="1" Placeholder="Display Name" Text="{Binding NewDisplayName}" />
-                    <Entry Grid.Row="0" Grid.Column="2" Placeholder="Password (min 6)" IsPassword="True" Text="{Binding NewPassword}" />
-                    
+                    <Entry Grid.Row="0" Grid.Column="0"
+                           Placeholder="Username"
+                           Text="{Binding NewUsername}"
+                           IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}" />
+                    <Entry Grid.Row="0" Grid.Column="1"
+                           Placeholder="Display Name"
+                           Text="{Binding NewDisplayName}"
+                           IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}" />
+                    <Entry Grid.Row="0" Grid.Column="2"
+                           Placeholder="Password (min 6)"
+                           IsPassword="True"
+                           Text="{Binding NewPassword}"
+                           IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}" />
+
                     <Picker Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
                             Title="Select Role"
                             ItemsSource="{Binding AvailableRoles}"
-                            SelectedItem="{Binding NewRole}" />
+                            SelectedItem="{Binding NewRole}"
+                            IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}" />
 
                     <Button Grid.Row="1" Grid.Column="2"
                             Text="Create User"
                             Command="{Binding CreateUserCommand}"
+                            IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}"
                             BackgroundColor="#2563EB"
                             TextColor="White"
                             CornerRadius="6" />
@@ -48,39 +63,77 @@
             </VerticalStackLayout>
         </Frame>
 
-        <!-- Users List -->
-        <CollectionView Grid.Row="2"
-                        Margin="16,8"
-                        ItemsSource="{Binding Users}">
-            <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="entities:User">
-                    <Frame Margin="0,4" Padding="12" CornerRadius="8">
-                        <Grid ColumnDefinitions="*, Auto, Auto" ColumnSpacing="12" VerticalOptions="Center">
-                            <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                <Label Text="{Binding DisplayName}" FontAttributes="Bold" FontSize="15" />
-                                <Label Text="{Binding Username, StringFormat='@{0}'}" FontSize="13" TextColor="#64748B" />
-                                <Label Text="{Binding Role, StringFormat='Role: {0}'}" FontSize="12" TextColor="#0284C7" />
-                            </VerticalStackLayout>
+        <!-- Users List Area -->
+        <Grid Grid.Row="2" Margin="16,8">
+            <RefreshView IsRefreshing="{Binding IsBusy}"
+                         Command="{Binding LoadUsersCommand}">
+                <CollectionView ItemsSource="{Binding Users}"
+                                SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="entities:User">
+                            <Frame Margin="0,4"
+                                   Padding="12"
+                                   CornerRadius="8"
+                                   BorderColor="{AppThemeBinding Light=#E2E8F0, Dark=#334155}">
+                                <Grid ColumnDefinitions="*, Auto, Auto" ColumnSpacing="12" VerticalOptions="Center">
+                                    <!-- User Info (G5: resilient against text clipping) -->
+                                    <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
+                                        <Label Text="{Binding DisplayName}"
+                                               FontAttributes="Bold"
+                                               FontSize="15"
+                                               LineBreakMode="TailTruncation" />
+                                        <Label Text="{Binding Username, StringFormat='@{0}'}"
+                                               FontSize="13"
+                                               TextColor="#64748B"
+                                               LineBreakMode="TailTruncation" />
+                                        <Label Text="{Binding Role, StringFormat='Role: {0}'}"
+                                               FontSize="12"
+                                               TextColor="#0284C7"
+                                               LineBreakMode="TailTruncation" />
+                                    </VerticalStackLayout>
 
-                            <Label Grid.Column="1"
-                                   Text="{Binding IsActive, Converter={x:Null}, StringFormat='{0}'}"
-                                   VerticalOptions="Center"
-                                   FontSize="12"
-                                   TextColor="{AppThemeBinding Light=#475569, Dark=#94A3B8}" />
+                                    <!-- Status Indicator with color binding (G3 Fix) -->
+                                    <Label Grid.Column="1"
+                                           FontAttributes="Bold"
+                                           VerticalOptions="Center"
+                                           FontSize="12"
+                                           TextColor="{Binding IsActive, Converter={StaticResource ActiveStatusColorConverter}}">
+                                        <Label.Triggers>
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsActive}" Value="True">
+                                                <Setter Property="Text" Value="Active" />
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsActive}" Value="False">
+                                                <Setter Property="Text" Value="Inactive" />
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
 
-                            <Button Grid.Column="2"
-                                    Text="Toggle Status"
-                                    Command="{Binding Source={RelativeSource AncestorType={x:Type usersVm:UserListViewModel}}, Path=ToggleUserStatusCommand}"
-                                    CommandParameter="{Binding .}"
-                                    BackgroundColor="#475569"
-                                    TextColor="White"
-                                    FontSize="12"
-                                    CornerRadius="6"
-                                    HeightRequest="36" />
-                        </Grid>
-                    </Frame>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
+                                    <!-- Status Toggle Action Button (G2 & Permission checked) -->
+                                    <Button Grid.Column="2"
+                                            Text="Toggle Status"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type usersVm:UserListViewModel}}, Path=ToggleUserStatusCommand}"
+                                            CommandParameter="{Binding .}"
+                                            IsVisible="{Binding Source={RelativeSource AncestorType={x:Type usersVm:UserListViewModel}}, Path=CanManageUsers}"
+                                            IsEnabled="{Binding Source={RelativeSource AncestorType={x:Type usersVm:UserListViewModel}}, Path=IsBusy, Converter={StaticResource InverseBoolConverter}}"
+                                            BackgroundColor="#475569"
+                                            TextColor="White"
+                                            FontSize="12"
+                                            CornerRadius="6"
+                                            HeightRequest="36" />
+                                </Grid>
+                            </Frame>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </RefreshView>
+
+            <!-- G4: Loading Indicator Overlay -->
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}"
+                               VerticalOptions="Center"
+                               HorizontalOptions="Center"
+                               ZIndex="10"
+                               Color="#2563EB" />
+        </Grid>
     </Grid>
 </ContentPage>
