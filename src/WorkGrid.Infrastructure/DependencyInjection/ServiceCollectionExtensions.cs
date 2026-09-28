@@ -42,7 +42,11 @@ public static class ServiceCollectionExtensions
         // Token Service (S4.3)
         services.AddSingleton<ITokenService, JwtTokenService>();
 
+        // Remote Data Services (S4.4)
+        services.AddScoped<IEmployeeRemoteService, EmployeeRemoteService>();
+
         return services;
     }
 }
+
 
