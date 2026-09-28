@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,6 +12,7 @@ public sealed class RemoteClient : IRemoteClient, IDisposable
     private readonly HttpMessageHandler? _customHandler;
     private HttpClient? _httpClient;
     private ConnectionState _state = ConnectionState.Unknown;
+    private string? _authToken;
     private readonly object _lock = new();
     private bool _disposed;
 
@@ -33,6 +35,14 @@ public sealed class RemoteClient : IRemoteClient, IDisposable
 
     public RemoteEndpoint Endpoint { get; private set; }
 
+    public string? AuthToken
+    {
+        get
+        {
+            lock (_lock) return _authToken;
+        }
+    }
+
     public event Action<ConnectionState>? StateChanged;
 
     public RemoteClient(RemoteEndpoint endpoint, HttpMessageHandler? customHandler = null)
@@ -45,7 +55,7 @@ public sealed class RemoteClient : IRemoteClient, IDisposable
     public void UpdateEndpoint(RemoteEndpoint endpoint)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
-        
+
         lock (_lock)
         {
             Endpoint = endpoint;
@@ -54,16 +64,46 @@ public sealed class RemoteClient : IRemoteClient, IDisposable
         }
     }
 
+    public void SetAuthToken(string? token)
+    {
+        lock (_lock)
+        {
+            _authToken = string.IsNullOrWhiteSpace(token) ? null : token.Trim();
+            ApplyAuthHeader();
+        }
+    }
+
+    public void ClearAuthToken()
+    {
+        SetAuthToken(null);
+    }
+
+    private void ApplyAuthHeader()
+    {
+        if (_httpClient is null) return;
+
+        if (string.IsNullOrEmpty(_authToken))
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = null;
+        }
+        else
+        {
+            _httpClient.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", _authToken);
+        }
+    }
+
     private void RecreateHttpClient()
     {
         _httpClient?.Dispose();
-        
+
         var handler = _customHandler ?? new HttpClientHandler();
         _httpClient = new HttpClient(handler, disposeHandler: _customHandler == null)
         {
             BaseAddress = Endpoint.BaseUri,
             Timeout = Endpoint.Timeout
         };
+        ApplyAuthHeader();
     }
 
     public async Task<RemoteResult> ExecuteAsync(
@@ -91,7 +131,7 @@ public sealed class RemoteClient : IRemoteClient, IDisposable
                 }
 
                 var response = await request(_httpClient!);
-                
+
                 // Track state transitions based on outcome
                 if (response.IsSuccessStatusCode)
                 {
@@ -100,7 +140,7 @@ public sealed class RemoteClient : IRemoteClient, IDisposable
                 }
 
                 // Handle authorization and general status codes
-                if (response.StatusCode == HttpStatusCode.Unauthorized || 
+                if (response.StatusCode == HttpStatusCode.Unauthorized ||
                     response.StatusCode == HttpStatusCode.Forbidden)
                 {
                     State = ConnectionState.Connected; // Endpoint remains reachable
@@ -129,7 +169,7 @@ public sealed class RemoteClient : IRemoteClient, IDisposable
                     return RemoteResult.Failure(RemoteErrorKind.Timeout, "The connection request timed out.", null);
                 }
             }
-            catch (TaskCanceledException) // HttpClient timeouts throw TaskCanceledException
+            catch (TaskCanceledException)
             {
                 if (attempt > maxRetries)
                 {

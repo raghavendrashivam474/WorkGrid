@@ -1,10 +1,13 @@
 ﻿using System;
 using System.IO;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.IdentityModel.Tokens;
 using WorkGrid.Infrastructure.DependencyInjection;
 using WorkGrid.Infrastructure.Persistence;
 
@@ -15,13 +18,36 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Configure Server Persistence (explicitly distinct from mobile SQLite path)
+// Configure Server Persistence
 var connectionString = builder.Configuration.GetConnectionString("WorkGridServerDb");
 var serverDbPath = string.IsNullOrWhiteSpace(connectionString)
     ? Path.Combine(AppContext.BaseDirectory, "workgrid_server.db")
     : (Path.IsPathRooted(connectionString) ? connectionString : Path.Combine(AppContext.BaseDirectory, connectionString));
 
 builder.Services.AddInfrastructure(serverDbPath);
+
+// Configure JWT Authentication (S4.3)
+var jwtSecret = builder.Configuration["Jwt:Secret"]
+    ?? throw new InvalidOperationException("Jwt:Secret is not configured.");
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "WorkGrid";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "WorkGridClients";
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
+        };
+    });
+
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
@@ -39,6 +65,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 

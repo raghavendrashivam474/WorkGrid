@@ -39,6 +39,10 @@ public static class ServiceCollectionExtensions
         var endpoint = remoteEndpoint ?? new RemoteEndpoint(new Uri("https://localhost:5001"));
         services.AddSingleton<IRemoteClient>(sp => new RemoteClient(endpoint));
 
+        // Token Service (S4.3)
+        services.AddSingleton<ITokenService, JwtTokenService>();
+
         return services;
     }
 }
+
