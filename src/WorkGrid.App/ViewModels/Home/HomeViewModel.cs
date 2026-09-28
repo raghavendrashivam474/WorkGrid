@@ -10,6 +10,8 @@ public sealed class HomeViewModel : ViewModelBase
     private readonly IEmployeeRepository _employeeRepository;
     private readonly IAssetRepository _assetRepository;
     private readonly IAssignmentRepository _assignmentRepository;
+    private readonly IAuthenticationService _authenticationService;
+    private readonly ISessionService _sessionService;
 
     private string _title = "WorkGrid Dashboard";
     private bool _isLoading;
@@ -20,6 +22,8 @@ public sealed class HomeViewModel : ViewModelBase
     private int _maintenanceAssetCount;
     private int _retiredAssetCount;
     private int _activeAssignmentCount;
+    private string _currentUserName = string.Empty;
+    private string _currentUserRole = string.Empty;
 
     public string Title
     {
@@ -75,18 +79,36 @@ public sealed class HomeViewModel : ViewModelBase
         set => SetProperty(ref _activeAssignmentCount, value);
     }
 
+    public string CurrentUserName
+    {
+        get => _currentUserName;
+        set => SetProperty(ref _currentUserName, value);
+    }
+
+    public string CurrentUserRole
+    {
+        get => _currentUserRole;
+        set => SetProperty(ref _currentUserRole, value);
+    }
+
     public ICommand RefreshCommand { get; }
+    public ICommand LogoutCommand { get; }
 
     public HomeViewModel(
         IEmployeeRepository employeeRepository,
         IAssetRepository assetRepository,
-        IAssignmentRepository assignmentRepository)
+        IAssignmentRepository assignmentRepository,
+        IAuthenticationService authenticationService,
+        ISessionService sessionService)
     {
         _employeeRepository = employeeRepository ?? throw new ArgumentNullException(nameof(employeeRepository));
         _assetRepository = assetRepository ?? throw new ArgumentNullException(nameof(assetRepository));
         _assignmentRepository = assignmentRepository ?? throw new ArgumentNullException(nameof(assignmentRepository));
+        _authenticationService = authenticationService ?? throw new ArgumentNullException(nameof(authenticationService));
+        _sessionService = sessionService ?? throw new ArgumentNullException(nameof(sessionService));
 
         RefreshCommand = new Command(async () => await LoadDashboardAsync());
+        LogoutCommand = new Command(async () => await ExecuteLogoutAsync());
     }
 
     public async Task LoadDashboardAsync()
@@ -97,6 +119,17 @@ public sealed class HomeViewModel : ViewModelBase
 
         try
         {
+            if (_sessionService.CurrentUser is { } user)
+            {
+                CurrentUserName = user.DisplayName;
+                CurrentUserRole = user.Role.ToString();
+            }
+            else
+            {
+                CurrentUserName = "User";
+                CurrentUserRole = string.Empty;
+            }
+
             var employees = await _employeeRepository.GetAllAsync();
             var assets = await _assetRepository.GetAllAsync();
             var assignments = await _assignmentRepository.GetAllAsync();
@@ -119,5 +152,11 @@ public sealed class HomeViewModel : ViewModelBase
         {
             IsLoading = false;
         }
+    }
+
+    private async Task ExecuteLogoutAsync()
+    {
+        _authenticationService.Logout();
+        await Shell.Current.GoToAsync("//login");
     }
 }
