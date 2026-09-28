@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -14,6 +15,7 @@ namespace WorkGrid.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
+[Authorize]
 public sealed class EmployeesController : ControllerBase
 {
     private readonly IEmployeeRepository _employeeRepository;
@@ -53,3 +55,4 @@ public sealed class EmployeesController : ControllerBase
         }
     }
 }
+
