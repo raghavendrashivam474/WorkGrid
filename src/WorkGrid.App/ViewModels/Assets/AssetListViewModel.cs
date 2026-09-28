@@ -10,9 +10,11 @@ namespace WorkGrid.App.ViewModels.Assets;
 public sealed class AssetListViewModel : ViewModelBase
 {
     private readonly IAssetRepository _repository;
+    private readonly IAuthorizationService _authorizationService;
     private readonly List<Asset> _allAssets = new();
 
     private bool _isLoading;
+    private bool _isNavigating;
     private bool _isEmpty = true;
     private string _statusMessage = string.Empty;
     private string _searchText = string.Empty;
@@ -31,7 +33,14 @@ public sealed class AssetListViewModel : ViewModelBase
     public bool IsLoading
     {
         get => _isLoading;
-        set => SetProperty(ref _isLoading, value);
+        set
+        {
+            if (SetProperty(ref _isLoading, value))
+            {
+                ((Command)LoadAssetsCommand).ChangeCanExecute();
+                ((Command)AddAssetCommand).ChangeCanExecute();
+            }
+        }
     }
 
     public bool IsEmpty
@@ -70,29 +79,28 @@ public sealed class AssetListViewModel : ViewModelBase
         }
     }
 
+    public bool CanCreateAsset => _authorizationService.HasPermission(AppPermission.AssetCreate);
+
     public ICommand LoadAssetsCommand { get; }
     public ICommand AddAssetCommand { get; }
     public ICommand SelectAssetCommand { get; }
     public ICommand SetFilterCommand { get; }
 
-    public AssetListViewModel(IAssetRepository repository)
+    public AssetListViewModel(
+        IAssetRepository repository,
+        IAuthorizationService authorizationService)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _authorizationService = authorizationService ?? throw new ArgumentNullException(nameof(authorizationService));
 
-        LoadAssetsCommand = new Command(async () => await LoadAssetsAsync());
-        AddAssetCommand = new Command(async () => await Shell.Current.GoToAsync("asset-detail"));
+        LoadAssetsCommand = new Command(async () => await LoadAssetsAsync(), () => !IsLoading);
+        AddAssetCommand = new Command(async () => await ExecuteAddAssetAsync(), () => !IsLoading && !_isNavigating && CanCreateAsset);
         SetFilterCommand = new Command<string>((filter) =>
         {
             if (!string.IsNullOrEmpty(filter))
                 SelectedFilter = filter;
         });
-        SelectAssetCommand = new Command<Asset>(async (ast) =>
-        {
-            if (ast != null)
-            {
-                await Shell.Current.GoToAsync($"asset-detail?id={ast.Id}");
-            }
-        });
+        SelectAssetCommand = new Command<Asset>(async (ast) => await ExecuteSelectAssetAsync(ast));
     }
 
     public async Task LoadAssetsAsync()
@@ -119,6 +127,36 @@ public sealed class AssetListViewModel : ViewModelBase
         finally
         {
             IsLoading = false;
+        }
+    }
+
+    private async Task ExecuteAddAssetAsync()
+    {
+        if (_isNavigating || IsLoading) return;
+
+        try
+        {
+            _isNavigating = true;
+            await Shell.Current.GoToAsync("asset-detail");
+        }
+        finally
+        {
+            _isNavigating = false;
+        }
+    }
+
+    private async Task ExecuteSelectAssetAsync(Asset? ast)
+    {
+        if (ast is null || _isNavigating || IsLoading) return;
+
+        try
+        {
+            _isNavigating = true;
+            await Shell.Current.GoToAsync($"asset-detail?id={ast.Id}");
+        }
+        finally
+        {
+            _isNavigating = false;
         }
     }
 
@@ -157,7 +195,7 @@ public sealed class AssetListViewModel : ViewModelBase
             else if (SelectedFilter != "All")
                 StatusMessage = $"No assets found with status '{SelectedFilter}'.";
             else
-                StatusMessage = "No assets registered. Tap '+' to add one.";
+                StatusMessage = "No assets registered. Tap '+ Add Asset' to create one.";
         }
         else
         {
