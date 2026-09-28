@@ -59,34 +59,36 @@
                        CornerRadius="8">
                     <VerticalStackLayout Spacing="12">
                         <Label Text="Asset Information" FontAttributes="Bold" FontSize="16" TextColor="#512BD4" />
-                        
+
                         <Grid ColumnDefinitions="Auto, *" RowDefinitions="Auto, Auto">
                             <Label Grid.Row="0" Grid.Column="0" Text="Tag:" FontAttributes="Bold" WidthRequest="80" />
-                            <Label Grid.Row="0" Grid.Column="1" Text="{Binding AssetTag}" />
+                            <Label Grid.Row="0" Grid.Column="1" Text="{Binding AssetTag}" LineBreakMode="TailTruncation" />
 
                             <Label Grid.Row="1" Grid.Column="0" Text="Name:" FontAttributes="Bold" WidthRequest="80" Margin="0,5,0,0" />
-                            <Label Grid.Row="1" Grid.Column="1" Text="{Binding AssetName}" Margin="0,5,0,0" />
+                            <Label Grid.Row="1" Grid.Column="1" Text="{Binding AssetName}" LineBreakMode="TailTruncation" Margin="0,5,0,0" />
                         </Grid>
 
                         <BoxView HeightRequest="1" Color="LightGray" Margin="0,5" />
 
                         <Label Text="Employee Information" FontAttributes="Bold" FontSize="16" TextColor="#512BD4" />
-                        
+
                         <Grid ColumnDefinitions="Auto, *" RowDefinitions="Auto, Auto">
                             <Label Grid.Row="0" Grid.Column="0" Text="Code:" FontAttributes="Bold" WidthRequest="80" />
-                            <Label Grid.Row="0" Grid.Column="1" Text="{Binding EmployeeCode}" />
+                            <Label Grid.Row="0" Grid.Column="1" Text="{Binding EmployeeCode}" LineBreakMode="TailTruncation" />
 
                             <Label Grid.Row="1" Grid.Column="0" Text="Name:" FontAttributes="Bold" WidthRequest="80" Margin="0,5,0,0" />
-                            <Label Grid.Row="1" Grid.Column="1" Text="{Binding EmployeeName}" Margin="0,5,0,0" />
+                            <Label Grid.Row="1" Grid.Column="1" Text="{Binding EmployeeName}" LineBreakMode="TailTruncation" Margin="0,5,0,0" />
                         </Grid>
 
                         <BoxView HeightRequest="1" Color="LightGray" Margin="0,5" />
 
                         <Label Text="Lifecycle dates" FontAttributes="Bold" FontSize="14" />
-                        
+
                         <VerticalStackLayout Spacing="4">
                             <Label Text="{Binding AssignedAt, StringFormat='Assigned At: {0:g}'}" />
-                            <Label Text="{Binding ReturnedAt, StringFormat='Returned At: {0:g}'}" IsVisible="{Binding ReturnedAt, Converter={StaticResource IsNotNullOrEmptyConverter}}" />
+                            <!-- G9 Fix: Show Returned At when assignment is not active (i.e. Returned) -->
+                            <Label Text="{Binding ReturnedAt, StringFormat='Returned At: {0:g}'}"
+                                   IsVisible="{Binding IsActive, Converter={StaticResource InverseBoolConverter}}" />
                         </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Frame>
