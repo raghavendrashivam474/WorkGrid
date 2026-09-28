@@ -22,6 +22,7 @@ public sealed class AssignmentDetailViewModel : ViewModelBase
     private string _title = "New Assignment";
     private string _errorMessage = string.Empty;
     private bool _isBusy;
+    private bool _isNavigating;
     private bool _isEditMode;
     private bool _isActive;
 
@@ -82,7 +83,15 @@ public sealed class AssignmentDetailViewModel : ViewModelBase
     public bool IsBusy
     {
         get => _isBusy;
-        set => SetProperty(ref _isBusy, value);
+        set
+        {
+            if (SetProperty(ref _isBusy, value))
+            {
+                ((Command)SaveCommand).ChangeCanExecute();
+                ((Command)ReturnCommand).ChangeCanExecute();
+                ((Command)CancelCommand).ChangeCanExecute();
+            }
+        }
     }
 
     public bool IsEditMode
@@ -162,9 +171,9 @@ public sealed class AssignmentDetailViewModel : ViewModelBase
         _assetRepository = assetRepository ?? throw new ArgumentNullException(nameof(assetRepository));
         _authorizationService = authorizationService ?? throw new ArgumentNullException(nameof(authorizationService));
 
-        SaveCommand = new Command(async () => await SaveAsync());
-        ReturnCommand = new Command(async () => await ReturnAsync());
-        CancelCommand = new Command(async () => await Shell.Current.GoToAsync(".."));
+        SaveCommand = new Command(async () => await SaveAsync(), () => !IsBusy && !IsEditMode);
+        ReturnCommand = new Command(async () => await ReturnAsync(), () => !IsBusy && IsEditMode && IsActive);
+        CancelCommand = new Command(async () => await ExecuteCancelAsync(), () => !_isNavigating);
     }
 
     public async Task LoadAssignmentAsync()
@@ -190,6 +199,8 @@ public sealed class AssignmentDetailViewModel : ViewModelBase
                 var ast = await _assetRepository.GetByIdAsync(asm.AssetId);
                 AssetTag = ast?.AssetTag ?? "N/A";
                 AssetName = ast?.Name ?? "Unknown Asset";
+
+                ((Command)ReturnCommand).ChangeCanExecute();
             }
             else
             {
@@ -246,7 +257,7 @@ public sealed class AssignmentDetailViewModel : ViewModelBase
 
     private async Task SaveAsync()
     {
-        if (IsBusy || IsEditMode) return;
+        if (IsBusy || IsEditMode || _isNavigating) return;
 
         ErrorMessage = string.Empty;
 
@@ -269,6 +280,8 @@ public sealed class AssignmentDetailViewModel : ViewModelBase
             _authorizationService.EnsurePermission(AppPermission.AssignmentCreate);
 
             await _assignmentService.AssignAssetAsync(SelectedEmployee.Id, SelectedAsset.Id);
+
+            _isNavigating = true;
             await Shell.Current.GoToAsync("..");
         }
         catch (DomainValidationException dex)
@@ -282,12 +295,24 @@ public sealed class AssignmentDetailViewModel : ViewModelBase
         finally
         {
             IsBusy = false;
+            _isNavigating = false;
         }
     }
 
     private async Task ReturnAsync()
     {
-        if (IsBusy || !IsEditMode || _id == Guid.Empty) return;
+        if (IsBusy || !IsEditMode || _id == Guid.Empty || !IsActive) return;
+
+        if (Application.Current?.MainPage != null)
+        {
+            var confirm = await Application.Current.MainPage.DisplayAlert(
+                "Confirm Return",
+                $"Are you sure you want to return asset '{AssetName}' ({AssetTag})?",
+                "Yes, Return",
+                "Cancel");
+
+            if (!confirm) return;
+        }
 
         ErrorMessage = string.Empty;
         IsBusy = true;
@@ -310,6 +335,21 @@ public sealed class AssignmentDetailViewModel : ViewModelBase
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    private async Task ExecuteCancelAsync()
+    {
+        if (_isNavigating) return;
+
+        try
+        {
+            _isNavigating = true;
+            await Shell.Current.GoToAsync("..");
+        }
+        finally
+        {
+            _isNavigating = false;
         }
     }
 }

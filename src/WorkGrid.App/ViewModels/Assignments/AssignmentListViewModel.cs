@@ -12,6 +12,7 @@ public sealed class AssignmentListViewModel : ViewModelBase
     private readonly IAssetRepository _assetRepository;
 
     private bool _isLoading;
+    private bool _isNavigating;
     private bool _isEmpty;
     private string _statusMessage = string.Empty;
 
@@ -20,7 +21,15 @@ public sealed class AssignmentListViewModel : ViewModelBase
     public bool IsLoading
     {
         get => _isLoading;
-        set => SetProperty(ref _isLoading, value);
+        set
+        {
+            if (SetProperty(ref _isLoading, value))
+            {
+                ((Command)LoadAssignmentsCommand).ChangeCanExecute();
+                ((Command)AddAssignmentCommand).ChangeCanExecute();
+                ((Command)SelectAssignmentCommand).ChangeCanExecute();
+            }
+        }
     }
 
     public bool IsEmpty
@@ -48,15 +57,49 @@ public sealed class AssignmentListViewModel : ViewModelBase
         _employeeRepository = employeeRepository ?? throw new ArgumentNullException(nameof(employeeRepository));
         _assetRepository = assetRepository ?? throw new ArgumentNullException(nameof(assetRepository));
 
-        LoadAssignmentsCommand = new Command(async () => await LoadAssignmentsAsync());
-        AddAssignmentCommand = new Command(async () => await Shell.Current.GoToAsync("assignment-detail"));
-        SelectAssignmentCommand = new Command<AssignmentDisplayItem>(async (item) =>
+        LoadAssignmentsCommand = new Command(async () => await LoadAssignmentsAsync(), () => !IsLoading);
+        AddAssignmentCommand = new Command(async () => await ExecuteAddAssignmentAsync(), () => !IsLoading && !_isNavigating);
+        SelectAssignmentCommand = new Command<AssignmentDisplayItem>(async (item) => await ExecuteSelectAssignmentAsync(item), (item) => !IsLoading && !_isNavigating);
+    }
+
+    private async Task ExecuteAddAssignmentAsync()
+    {
+        if (_isNavigating || IsLoading) return;
+
+        try
         {
-            if (item != null)
-            {
-                await Shell.Current.GoToAsync($"assignment-detail?id={item.Id}");
-            }
-        });
+            _isNavigating = true;
+            ((Command)AddAssignmentCommand).ChangeCanExecute();
+            ((Command)SelectAssignmentCommand).ChangeCanExecute();
+
+            await Shell.Current.GoToAsync("assignment-detail");
+        }
+        finally
+        {
+            _isNavigating = false;
+            ((Command)AddAssignmentCommand).ChangeCanExecute();
+            ((Command)SelectAssignmentCommand).ChangeCanExecute();
+        }
+    }
+
+    private async Task ExecuteSelectAssignmentAsync(AssignmentDisplayItem item)
+    {
+        if (item == null || _isNavigating || IsLoading) return;
+
+        try
+        {
+            _isNavigating = true;
+            ((Command)AddAssignmentCommand).ChangeCanExecute();
+            ((Command)SelectAssignmentCommand).ChangeCanExecute();
+
+            await Shell.Current.GoToAsync($"assignment-detail?id={item.Id}");
+        }
+        finally
+        {
+            _isNavigating = false;
+            ((Command)AddAssignmentCommand).ChangeCanExecute();
+            ((Command)SelectAssignmentCommand).ChangeCanExecute();
+        }
     }
 
     public async Task LoadAssignmentsAsync()
