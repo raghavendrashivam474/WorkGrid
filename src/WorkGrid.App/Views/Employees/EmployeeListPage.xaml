@@ -47,24 +47,29 @@
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type vm:EmployeeListViewModel}}, Path=SelectEmployeeCommand}"
                                         CommandParameter="{Binding .}" />
                                 </Frame.GestureRecognizers>
-                                <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto">
+                                <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto" RowSpacing="4">
                                     <Label Grid.Row="0" Grid.Column="0"
                                            Text="{Binding Name}"
                                            FontAttributes="Bold"
-                                           FontSize="16" />
+                                           FontSize="16"
+                                           LineBreakMode="TailTruncation" />
                                     <Label Grid.Row="0" Grid.Column="1"
                                            Text="{Binding EmployeeCode}"
                                            TextColor="Gray"
-                                           FontSize="13" />
+                                           FontSize="13"
+                                           HorizontalOptions="End" />
                                     <Label Grid.Row="1" Grid.Column="0"
                                            Text="{Binding Email}"
                                            TextColor="Gray"
-                                           FontSize="13" />
+                                           FontSize="13"
+                                           LineBreakMode="TailTruncation" />
                                     <Label Grid.Row="1" Grid.Column="1"
                                            Text="{Binding Department}"
                                            TextColor="#512BD4"
                                            FontSize="13"
-                                           FontAttributes="Italic" />
+                                           FontAttributes="Italic"
+                                           LineBreakMode="TailTruncation"
+                                           HorizontalOptions="End" />
                                 </Grid>
                             </Frame>
                         </DataTemplate>
@@ -77,6 +82,13 @@
         <Button Grid.Row="2"
                 Text="+ Add Employee"
                 Command="{Binding AddEmployeeCommand}"
+                IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBoolConverter}}"
+                IsVisible="{Binding CanCreateEmployee}"
+                BackgroundColor="#2563EB"
+                TextColor="White"
+                FontAttributes="Bold"
+                CornerRadius="8"
+                HeightRequest="46"
                 Margin="0,5,0,0" />
     </Grid>
 </ContentPage>
