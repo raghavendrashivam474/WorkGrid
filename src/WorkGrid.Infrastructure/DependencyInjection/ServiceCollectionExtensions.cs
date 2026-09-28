@@ -1,7 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using WorkGrid.Domain.Contracts;
 using WorkGrid.Infrastructure.Persistence;
+using WorkGrid.Infrastructure.Remote;
 using WorkGrid.Infrastructure.Repositories;
 using WorkGrid.Infrastructure.Services;
 
@@ -9,7 +11,10 @@ namespace WorkGrid.Infrastructure.DependencyInjection;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, string databasePath)
+    public static IServiceCollection AddInfrastructure(
+        this IServiceCollection services, 
+        string databasePath,
+        RemoteEndpoint? remoteEndpoint = null)
     {
         services.AddDbContext<WorkGridDbContext>(options =>
         {
@@ -29,6 +34,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuthenticationService, AuthenticationService>();
         services.AddScoped<IAuthorizationService, AuthorizationService>();
         services.AddScoped<IUserManagementService, UserManagementService>();
+
+        // Remote Boundary Foundation (S4.1)
+        var endpoint = remoteEndpoint ?? new RemoteEndpoint(new Uri("https://localhost:5001"));
+        services.AddSingleton<IRemoteClient>(sp => new RemoteClient(endpoint));
 
         return services;
     }
