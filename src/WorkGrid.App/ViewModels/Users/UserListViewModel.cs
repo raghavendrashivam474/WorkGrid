@@ -15,6 +15,8 @@ public sealed class UserListViewModel : ViewModelBase
     private readonly ISessionService _sessionService;
 
     private bool _isBusy;
+    private bool _isEmpty;
+    private string _statusMessage = string.Empty;
     private string _errorMessage = string.Empty;
     private string _newUsername = string.Empty;
     private string _newDisplayName = string.Empty;
@@ -35,6 +37,18 @@ public sealed class UserListViewModel : ViewModelBase
                 ((Command)ToggleUserStatusCommand).ChangeCanExecute();
             }
         }
+    }
+
+    public bool IsEmpty
+    {
+        get => _isEmpty;
+        set => SetProperty(ref _isEmpty, value);
+    }
+
+    public string StatusMessage
+    {
+        get => _statusMessage;
+        set => SetProperty(ref _statusMessage, value);
     }
 
     public string ErrorMessage
@@ -110,6 +124,7 @@ public sealed class UserListViewModel : ViewModelBase
         {
             IsBusy = true;
             ErrorMessage = string.Empty;
+            StatusMessage = "Loading users...";
 
             var users = await _userManagementService.GetAllUsersAsync();
             Users.Clear();
@@ -117,14 +132,21 @@ public sealed class UserListViewModel : ViewModelBase
             {
                 Users.Add(user);
             }
+
+            IsEmpty = Users.Count == 0;
+            StatusMessage = IsEmpty ? "No registered users. Use the form above to register one." : string.Empty;
         }
         catch (AuthorizationException authEx)
         {
             ErrorMessage = authEx.Message;
+            IsEmpty = true;
+            StatusMessage = string.Empty;
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Failed to load users: {ex.Message}";
+            IsEmpty = true;
+            StatusMessage = string.Empty;
         }
         finally
         {
@@ -138,7 +160,6 @@ public sealed class UserListViewModel : ViewModelBase
 
         ErrorMessage = string.Empty;
 
-        // G6: Proactive client-side validation
         if (string.IsNullOrWhiteSpace(NewUsername))
         {
             ErrorMessage = "Username is required.";
@@ -192,7 +213,6 @@ public sealed class UserListViewModel : ViewModelBase
     {
         if (user is null || IsBusy || !CanManageUsers) return;
 
-        // Guard: Confirmation dialog for destructive/deactivation action
         if (user.IsActive && Application.Current?.MainPage != null)
         {
             var confirm = await Application.Current.MainPage.DisplayAlert(
