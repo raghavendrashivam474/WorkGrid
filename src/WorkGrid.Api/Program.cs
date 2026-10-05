@@ -14,7 +14,8 @@ using WorkGrid.Infrastructure.Persistence;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add API controllers
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options => { options.JsonSerializerOptions.Converters.Add(new WorkGrid.Infrastructure.Remote.Sync.SyncObjectKeyJsonConverter()); });
+builder.Services.AddSingleton<WorkGrid.Api.Sync.RelayCoordinator>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -73,3 +74,5 @@ app.Run();
 
 // Required for WebApplicationFactory<Program> in integration tests
 public partial class Program { }
+
+

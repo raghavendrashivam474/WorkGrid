@@ -44,9 +44,13 @@ public static class ServiceCollectionExtensions
 
         // Remote Data Services (S4.4)
         services.AddScoped<IEmployeeRemoteService, EmployeeRemoteService>();
+        services.AddScoped<WorkGrid.Domain.Sync.ISyncEngine, WorkGrid.Infrastructure.Sync.SyncEngine>();
+        services.AddScoped<WorkGrid.Infrastructure.Remote.Sync.ISyncTransport, WorkGrid.Infrastructure.Remote.Sync.HttpSyncRelayTransport>();
 
         return services;
     }
 }
+
+
 
 
